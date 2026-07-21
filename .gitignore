@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+.env
+.claude/settings.local.json
+
+# 원천/중간 데이터 — 파이프라인으로 재생성됨, 용량 커서 git 제외 (us-stock-portfolio와 동일 원칙)
+*.db
+*.sqlite
+*.sqlite3
+data/analytics/

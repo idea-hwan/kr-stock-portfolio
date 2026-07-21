@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# ttm_metric_growth.db 종목 조회. docs/ttm_metric_growth.md
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+PY="${ROOT}/.venv/bin/python"
+if [[ ! -x "$PY" ]]; then
+  PY="python3"
+fi
+exec "$PY" scripts/screening/ttm_metric_growth_lookup.py "$@"

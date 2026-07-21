@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# 시총 상위 N종 TTM 성장률 배치 → 항상 ttm_metric_growth.db 적재.
+# 인자 없으면 --top-n 2500 만 전달. 상세: docs/ttm_metric_growth.md
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+PY="${ROOT}/.venv/bin/python"
+if [[ ! -x "$PY" ]]; then
+  PY="python3"
+fi
+if [[ $# -eq 0 ]]; then
+  set -- --top-n 2500
+fi
+exec "$PY" scripts/screening/ttm_metric_growth_top_n.py "$@"

@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>포트폴리오 선정 전략 — 방법론</title>
+<style>
+  :root {
+    --bg:       #0d1117;
+    --bg2:      #161b22;
+    --bg3:      #21262d;
+    --border:   #30363d;
+    --text:     #e6edf3;
+    --muted:    #8b949e;
+    --buy:      #3fb950;
+    --buy-bg:   #0d2818;
+    --watch:    #d29922;
+    --watch-bg: #2a1f0a;
+    --hold:     #388bfd;
+    --hold-bg:  #0c1f3b;
+    --sell:     #f85149;
+    --sell-bg:  #2d0f0f;
+    --accent:   #58a6ff;
+    --purple:   #8b5cf6;
+    --purple-bg:#1a1040;
+    --cyan:     #38bdf8;
+    --cyan-bg:  #0c2030;
+    --amber:    #d29922;
+    --amber-bg: #2a1f0a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 16px 20px;
+  }
+  header h1 { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.4px; }
+  header .subtitle { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  header .meta { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  header .meta span { margin-right: 12px; }
+  header .report-link {
+    display: inline-block; margin-top: 8px; font-size: 12px;
+    color: var(--buy); text-decoration: none; opacity: 0.9;
+  }
+  header .report-link:hover { opacity: 1; text-decoration: underline; }
+
+  nav {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    position: sticky; top: 0; z-index: 100;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  nav a {
+    display: inline-block;
+    padding: 12px 14px;
+    font-size: 12px; font-weight: 600;
+    color: var(--muted); text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  nav a:hover { color: var(--text); }
+  nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  main { max-width: 900px; margin: 0 auto; padding: 32px 16px 80px; }
+
+  .page-section { margin-bottom: 48px; scroll-margin-top: 48px; }
+
+  h2 {
+    font-size: 18px; font-weight: 700; color: var(--text);
+    margin-bottom: 8px; letter-spacing: -0.3px;
+  }
+  h2 .section-num {
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+
+  h3 { font-size: 15px; font-weight: 700; color: var(--text); margin: 24px 0 10px; }
+
+  .section-divider {
+    height: 1px; background: var(--border); margin-bottom: 20px;
+  }
+
+  p { color: var(--muted); font-size: 13px; line-height: 1.8; margin-bottom: 12px; }
+  p strong { color: var(--text); }
+
+  /* ── 버킷 그리드 ── */
+  .bucket-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .bucket-card {
+    border-radius: 10px;
+    padding: 16px;
+    border: 1px solid;
+  }
+  .bucket-card.cyclical { background: #0d1a0d; border-color: #1e4020; }
+  .bucket-card.value    { background: var(--purple-bg); border-color: #2a1a5e; }
+  .bucket-card.growth   { background: var(--cyan-bg);   border-color: #0c3048; }
+  .bucket-card.smid     { background: var(--amber-bg);  border-color: #3d2e0a; }
+
+  .bucket-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+    margin-bottom: 8px;
+  }
+  .bucket-card.cyclical .bucket-label { color: var(--buy); }
+  .bucket-card.value    .bucket-label { color: var(--purple); }
+  .bucket-card.growth   .bucket-label { color: var(--cyan); }
+  .bucket-card.smid     .bucket-label { color: var(--amber); }
+
+  .bucket-name { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .bucket-desc { font-size: 11px; color: var(--muted); line-height: 1.6; }
+  .bucket-n    { font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+  /* ── 공식 박스 ── */
+  .formula-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px;
+    color: var(--text);
+    line-height: 2;
+  }
+  .formula-box .formula-title {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.6px; color: var(--muted); margin-bottom: 10px;
+  }
+  .formula-box .hl-buy  { color: var(--buy); }
+  .formula-box .hl-sell { color: var(--sell); }
+  .formula-box .hl-acc  { color: var(--accent); }
+
+  /* ── 통계 그리드 ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 8px; margin: 14px 0;
+  }
+  .stat-box { background: var(--bg3); border-radius: 6px; padding: 10px 12px; text-align: center; }
+  .stat-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+  .stat-val   { font-size: 20px; font-weight: 700; color: var(--buy); }
+  .stat-val.warn { color: var(--watch); }
+  .stat-val.bad  { color: var(--sell); }
+  .stat-sub   { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* ── 표 ── */
+  .tbl-wrap { overflow-x: auto; margin: 14px 0; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 480px; }
+  th {
+    background: var(--bg3); color: var(--muted); font-weight: 600; text-align: left;
+    padding: 7px 10px; white-space: nowrap; border-bottom: 1px solid var(--border);
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg3); }
+  td.muted  { color: var(--muted); font-size: 11px; }
+  td.green  { color: var(--buy); font-weight: 600; }
+  td.yellow { color: var(--watch); font-weight: 600; }
+  td.red    { color: var(--sell); font-weight: 600; }
+
+  /* ── 강조 박스 ── */
+  .highlight-box {
+    background: var(--buy-bg);
+    border: 1px solid #1e4020;
+    border-left: 4px solid var(--buy);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 16px;
+    margin: 16px 0;
+    font-size: 13px; color: var(--text); line-height: 1.8;
+  }
+  .info-box {
+    background: var(--hold-bg);
+    border: 1px solid #1a3060;
+    border-left: 4px solid var(--hold);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 16px;
+    margin: 16px 0;
+    font-size: 12px; color: var(--muted); line-height: 1.8;
+  }
+  .info-box strong { color: var(--text); }
+  .warn-box {
+    background: var(--watch-bg);
+    border: 1px solid #3d2e0a;
+    border-left: 4px solid var(--watch);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 16px;
+    margin: 16px 0;
+    font-size: 12px; color: var(--muted); line-height: 1.8;
+  }
+  .warn-box strong { color: var(--text); }
+
+  /* ── 규칙 박스 ── */
+  .rule-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 14px 0; }
+  @media (max-width: 600px) { .rule-grid { grid-template-columns: 1fr; } }
+  .rule-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .rule-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 8px; }
+  .rule-title.buy  { color: var(--buy);  }
+  .rule-title.hold { color: var(--hold); }
+  .rule-title.sell { color: var(--sell); }
+  .rule-content { font-size: 11px; color: var(--muted); line-height: 1.8; }
+  .rule-content strong { color: var(--text); }
+
+  /* ── 비교 테이블 ── */
+  .comparison-row-cyclical td:first-child { border-left: 2px solid var(--buy); }
+  .comparison-row-value    td:first-child { border-left: 2px solid var(--purple); }
+  .comparison-row-growth   td:first-child { border-left: 2px solid var(--cyan); }
+  .comparison-row-smid     td:first-child { border-left: 2px solid var(--amber); }
+
+  /* ── 섹션 카드 (버킷별) ── */
+  .bucket-section {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+  .bucket-section-header {
+    padding: 16px 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .bucket-section-header.cyclical { background: #0d1a0d; }
+  .bucket-section-header.value    { background: var(--purple-bg); }
+  .bucket-section-header.growth   { background: var(--cyan-bg); }
+  .bucket-section-header.smid     { background: var(--amber-bg); }
+
+  .bucket-section-tag {
+    font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 4px;
+    letter-spacing: 0.5px; flex-shrink: 0;
+  }
+  .bucket-section-tag.cyclical { background: #1e4020; color: var(--buy); }
+  .bucket-section-tag.value    { background: #2a1a5e; color: var(--purple); }
+  .bucket-section-tag.growth   { background: #0c3048; color: var(--cyan); }
+  .bucket-section-tag.smid     { background: #3d2e0a; color: var(--amber); }
+
+  .bucket-section-title { font-size: 17px; font-weight: 700; color: var(--text); }
+  .bucket-section-meta  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .bucket-section-body  { padding: 20px; background: var(--bg2); }
+
+  /* ── 푸터 ── */
+  footer {
+    text-align: center; color: var(--muted); font-size: 11px;
+    padding: 24px 16px; border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>포트폴리오 선정 전략</h1>
+  <div class="subtitle">4개 버킷 기반 정량 신호 + 정성 분석 통합 방법론</div>
+  <div class="meta">
+    <span>방법론 v1 · as_of 2025Q4</span>
+    <span>백테스트 기간: 2016Q3–2025Q4</span>
+    <span>전체 유니버스: 162종목</span>
+  </div>
+  <a href="2025Q4_stock_portfolio.html" class="report-link">→ 2025Q4 분기 리포트 보기</a>
+</header>
+
+<nav>
+  <a href="#overview">개요</a>
+  <a href="#per-ratio">핵심 지표</a>
+  <a href="#cyclical">경기순환주</a>
+  <a href="#value">대형 밸류주</a>
+  <a href="#growth">대형 성장주</a>
+  <a href="#smid">중소형 성장주</a>
+  <a href="#priority">우선순위</a>
+  <a href="#rules">매수·홀딩·매도</a>
+</nav>
+
+<main>
+
+<!-- ════════ 1. 개요 ════════ -->
+<div class="page-section" id="overview">
+  <h2><span class="section-num">Section 01</span>전략 개요</h2>
+  <div class="section-divider"></div>
+
+  <p>
+    이 포트폴리오는 <strong>한국 주식시장을 4개의 서로 다른 버킷으로 분류</strong>하고, 버킷별로 최적화된 신호 체계를 적용해 종목을 선정한다.
+    버킷은 기업의 이익 패턴과 성장 특성에 따라 구분된다. 버킷이 다르면 신호가 달라야 한다 — 성장주에서 통하는 신호가 경기순환주에서는 역효과를 낼 수 있다.
+  </p>
+
+  <div class="bucket-grid">
+    <div class="bucket-card cyclical">
+      <div class="bucket-label">Bucket 1</div>
+      <div class="bucket-name">대형 경기순환주</div>
+      <div class="bucket-desc">글로벌 경쟁력 보유. 이익이 주기적으로 오르내림. 사이클 저점 진입이 핵심.</div>
+      <div class="bucket-n">34종목 (2025Q4)</div>
+    </div>
+    <div class="bucket-card value">
+      <div class="bucket-label">Bucket 2</div>
+      <div class="bucket-name">대형 밸류주</div>
+      <div class="bucket-desc">28분기 연속 흑자. 안정적인 이익 창출. 얼마나 싸게 사느냐가 전부.</div>
+      <div class="bucket-n">57종목 (2025Q4)</div>
+    </div>
+    <div class="bucket-card growth">
+      <div class="bucket-label">Bucket 3</div>
+      <div class="bucket-name">대형 성장주</div>
+      <div class="bucket-desc">28분기 연속 흑자 + 성장 가속 중. 저평가 + 가속 조합이 핵심.</div>
+      <div class="bucket-n">19종목 (2025Q4)</div>
+    </div>
+    <div class="bucket-card smid">
+      <div class="bucket-label">Bucket 4</div>
+      <div class="bucket-name">중소형 성장주</div>
+      <div class="bucket-desc">대형주 미편입. 성장 조건 동일. 저평가 신호만 작동 — 가속은 역효과.</div>
+      <div class="bucket-n">52종목 (2025Q4)</div>
+    </div>
+  </div>
+
+  <p>
+    각 버킷 내에서 <strong>정량 신호(per_ratio, acceleration, CAPEX, streak)로 후보를 추출</strong>하고,
+    매수 기준에 가까운 종목에 대해서만 <strong>뉴스·공시 기반 정성 분석</strong>을 수행한다.
+    정성 분석은 신호의 왜곡 여부(일회성 이익, 기저효과 등)를 판별하고 투자 논리를 검증한다.
+  </p>
+</div>
+
+
+<!-- ════════ 2. 핵심 지표 ════════ -->
+<div class="page-section" id="per-ratio">
+  <h2><span class="section-num">Section 02</span>핵심 지표 — per_ratio</h2>
+  <div class="section-divider"></div>
+
+  <p>4개 버킷 모두에서 공통으로 사용하는 핵심 지표는 <strong>per_ratio</strong>다. 현재 PER을 4년 평균 PER로 나눈 값으로, <em>이 기업이 역사적으로 얼마나 싸게 거래되고 있는가</em>를 측정한다.</p>
+
+  <div class="formula-box">
+    <div class="formula-title">per_ratio 정의</div>
+    <span class="hl-acc">per_ratio</span> = per_op_20d  /  per_op_4y<br>
+    <br>
+    per_op_20d  = 최근 20일 평균 주가 ÷ 주당 영업이익<br>
+    per_op_4y   = 최근 4년 평균 영업이익 기준 PER<br>
+    <br>
+    <span class="hl-buy">per_ratio &lt; 1.0</span>  →  현재 PER이 4년 평균보다 낮음 = 상대적 저평가<br>
+    <span class="hl-buy">per_ratio &lt; 0.5</span>  →  4년 평균의 절반 이하 = 강한 저평가 신호<br>
+    <span class="hl-sell">per_ratio ≥ 2.0</span>  →  4년 평균의 2배 이상 = 매도 검토 구간<br>
+    <br>
+    * 영업이익 결측 시: op → ni → rev 순 폴백
+  </div>
+
+  <p>
+    절대적 PER 수준(예: "PER 10배가 싸다")이 아니라 <strong>각 기업의 역사적 PER 대비 상대 수준</strong>을 본다.
+    이는 업종별·기업별로 적정 PER이 다르다는 현실을 반영한 접근이다.
+    업종 평균 PER이 50배인 바이오 기업의 PER 20배는 싼 것이고, 업종 평균 10배인 정유사의 PER 20배는 비싼 것이다.
+  </p>
+
+  <div class="info-box">
+    <strong>delta (δ)</strong> — per_ratio의 직전 분기 대비 변화량. 음수일수록 빠르게 저평가 구간으로 진입 중.
+    delta가 클수록(절대값 기준) 조만간 매수 기준(0.5) 돌파 가능성이 높다.
+  </div>
+</div>
+
+
+<!-- ════════ 3. 경기순환주 ════════ -->
+<div class="page-section" id="cyclical">
+  <h2><span class="section-num">Section 03</span>대형 경기순환주 전략</h2>
+  <div class="section-divider"></div>
+
+  <div class="bucket-section">
+    <div class="bucket-section-header cyclical">
+      <span class="bucket-section-tag cyclical">순환</span>
+      <div>
+        <div class="bucket-section-title">대형 경기순환주</div>
+        <div class="bucket-section-meta">코스피200 편입 · 글로벌 경쟁력 업종 · 34종목 · 이익 zero-crossing ≥ 2회</div>
+      </div>
+    </div>
+    <div class="bucket-section-body">
+
+      <h3>유니버스 조건</h3>
+      <p>이익이 구조적으로 오르내리는 <strong>글로벌 경쟁력 보유 경기순환주</strong>만 편입. 통신·플랫폼·바이오·국내건설·화장품은 제외한다(글로벌 사이클 비연동 또는 글로벌 경쟁력 미흡).</p>
+      <p>인정 업종: 반도체/전자부품, 자동차/부품, 조선(고부가 선종), 방산(K방산 수출), 철강/소재(글로벌 특수재), 2차전지소재(양극재·음극재·동박).</p>
+
+      <h3>신호 체계</h3>
+      <div class="formula-box">
+        <div class="formula-title">3개 핵심 신호</div>
+        <span class="hl-buy">s1 (싸다)</span>       = per_ratio &lt; 1.0<br>
+        <span class="hl-buy">s2 (Capex 증가)</span> = capex_ps_yoy &gt; 0  → 다음 사이클 투자 시작<br>
+        <span class="hl-buy">s3 (영업 회복)</span>  = op_ps_yoy &gt; 0   → s2의 후행 확인 지표<br>
+        <br>
+        종목별로 핵심신호(s1 또는 s2) 하나를 지정.<br>
+        <span class="hl-acc">streak</span> = 핵심신호가 연속으로 켜진 분기 수<br>
+        <span class="hl-buy">streak 1~2 = 진입 타이밍</span>  →  신호 첫 켜짐 = 사이클 초입
+      </div>
+
+      <div class="info-box">
+        <strong>매수 타이밍 교과서</strong> — 경기 저점 = 이익 바닥 = PER 고점 또는 적자. per_ratio가 낮고(4년 평균 대비 싸다) capex가 전년 대비 증가 전환하는 시점. 이 두 조건이 겹치는 시점이 최적 매수.
+      </div>
+
+      <h3>백테스트 결과 (2016Q3–2025Q4, 34종목)</h3>
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-label">핵심신호 ON 전체</div>
+          <div class="stat-val">+43%</div>
+          <div class="stat-sub">12m mean (n=628)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">median</div>
+          <div class="stat-val">+21%</div>
+          <div class="stat-sub">&gt;+20% 확률 50%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">ratio &lt; 0.5</div>
+          <div class="stat-val">+49%</div>
+          <div class="stat-sub">12m mean (n=192)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">s2만 단독 ON</div>
+          <div class="stat-val warn">+24%</div>
+          <div class="stat-sub">median +5% — 가장 약함</div>
+        </div>
+      </div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>per_ratio 구간</th><th>n</th><th>12m mean</th><th>12m median</th><th>&lt;−20% 비율</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="green">&lt; 0.5</td><td>192</td><td class="green">+49%</td><td>+24%</td><td>12%</td></tr>
+            <tr><td>0.5 ~ 1.0</td><td>350</td><td>+41%</td><td>+18%</td><td>14%</td></tr>
+            <tr><td>1.0 ~ 1.5</td><td>36</td><td>+44%</td><td>+19%</td><td>11%</td></tr>
+            <tr><td class="yellow">2.0+</td><td>32</td><td>+46%</td><td>+13%</td><td class="red">25%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:11px;">2.0+ 구간 mean이 높은 이유: 사이클 진행 중인 종목(신호 ON)이 섞여 있기 때문. 신호 OFF 종목만 걸러내면 성과 급락.</p>
+
+      <h3>Streak 유형별 전략</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>유형</th><th>패턴</th><th>전략</th><th>해당 예시</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="green">초입형</td><td>streak 1~2 최적</td><td>신호 첫 진입 즉시 매수</td><td>삼성전자, SK하이닉스, DB하이텍</td></tr>
+            <tr><td>장기형</td><td>streak 길수록 강함</td><td>초입 진입 후 장기 홀딩</td><td>한화에어로스페이스, 현대로템, HD한국조선해양</td></tr>
+            <tr><td>중간형</td><td>streak 3~5 최적</td><td>초입 약함, streak 3 이후부터 의미 있음</td><td>두산에너빌리티, HD건설기계</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rule-grid">
+        <div class="rule-card">
+          <div class="rule-title buy">매수</div>
+          <div class="rule-content">
+            핵심신호 ON<br>
+            streak 1~2 (초입 우선)<br>
+            <strong>ratio &lt; 1.0 → 강력 매수</strong><br>
+            ratio 1.0~2.0 → 매수 가능<br>
+            ratio 2.0+ → 신중 (사이클 확인)
+          </div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-title hold">홀딩</div>
+          <div class="rule-content">
+            핵심신호 ON 유지 → 홀딩<br>
+            ratio &lt; 2.0 → 홀딩<br>
+            ratio 2.0+ 장기형 → 홀딩 유지<br>
+            ratio 2.0+ 초입형 → 주의 홀딩
+          </div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-title sell">매도</div>
+          <div class="rule-content">
+            핵심신호 OFF + ratio &gt; 2.0 → 매도<br>
+            핵심신호 OFF 단독 → 검토<br>
+            ratio &gt; 2.0 단독 (장기형) → 홀딩 유지<br>
+            ratio &gt; 2.0 단독 (초입형) → 검토
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════ 4. 대형 밸류주 ════════ -->
+<div class="page-section" id="value">
+  <h2><span class="section-num">Section 04</span>대형 밸류주 전략</h2>
+  <div class="section-divider"></div>
+
+  <div class="bucket-section">
+    <div class="bucket-section-header value">
+      <span class="bucket-section-tag value">밸류</span>
+      <div>
+        <div class="bucket-section-title">대형 밸류주</div>
+        <div class="bucket-section-meta">코스피200 편입 · 28분기 연속 순이익 흑자 · 57종목</div>
+      </div>
+    </div>
+    <div class="bucket-section-body">
+
+      <div class="highlight-box">
+        핵심 원칙 세 가지 — <strong>엄청 싼 것을 산다. 없으면 사지 않는다. 기준을 낮추지 않는다.</strong>
+      </div>
+
+      <h3>신호 체계</h3>
+      <div class="formula-box">
+        <div class="formula-title">단일 신호</div>
+        <span class="hl-buy">per_ratio &lt; 0.5</span>  →  매수<br>
+        per_ratio ≥ 0.5  →  매수 없음 (기다린다)<br>
+        <br>
+        현금흐름(CFO, FCF)은 참고 지표. 필터로 쓰지 않는다.
+      </div>
+
+      <h3>백테스트 결과 (2016Q3–2025Q4, 57종목)</h3>
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-label">ratio &lt; 0.5</div>
+          <div class="stat-val">+32.7%</div>
+          <div class="stat-sub">12m mean (n=235)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">median</div>
+          <div class="stat-val">+22.3%</div>
+          <div class="stat-sub">손실확률 6%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">0.5~1.0 구간</div>
+          <div class="stat-val warn">+8.1%</div>
+          <div class="stat-sub">median −2.0%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">1.5~2.0 구간</div>
+          <div class="stat-val bad">−7.9%</div>
+          <div class="stat-sub">median −23.8%</div>
+        </div>
+      </div>
+
+      <p>0.5 미만과 0.5~1.0 구간의 격차가 압도적이다. 이것이 0.5를 기준선으로 쓰는 근거다.</p>
+
+      <h3>현금흐름의 역설</h3>
+      <div class="warn-box">
+        <strong>현금흐름이 나쁠수록 반등 강도가 강하다.</strong> CF가 모두 악화된 상태에서 per_ratio &lt; 0.5인 종목의 mean 수익률은 +55.8%, median +46.9%다. CF가 좋은 경우(mean +25.7%)보다 훨씬 강하다.
+        논리: 모든 게 나쁜데 엄청 싼 종목 = 시장이 과잉반응한 상태 = mean reversion 강도가 크다.
+        <strong>CF 악화 이유가 일시적(구조조정·합병·성장 CAPEX)인지 구조적(경쟁력 훼손)인지</strong>가 핵심 판단 포인트다.
+      </div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>조건</th><th>n</th><th>12m mean</th><th>12m median</th><th>&lt;−20%</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>ratio&lt;0.5 (단독)</td><td>235</td><td class="green">+32.7%</td><td class="green">+22.3%</td><td>6%</td></tr>
+            <tr><td>+ CFO·FCF 성장 모두 ≤0</td><td>55</td><td>+32.4%</td><td class="green">+26.8%</td><td class="green">0%</td></tr>
+            <tr><td>+ CFO·FCF 절대값 모두 ≤0</td><td>16</td><td class="green">+55.8%</td><td class="green">+46.9%</td><td>6%</td></tr>
+            <tr><td>+ CFO·FCF 성장 모두 &gt;0 (좋음)</td><td>117</td><td class="yellow">+25.7%</td><td class="yellow">+12.4%</td><td>9%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rule-grid">
+        <div class="rule-card">
+          <div class="rule-title buy">매수</div>
+          <div class="rule-content">
+            <strong>per_ratio &lt; 0.5</strong> → 매수<br>
+            해당 없으면 → 매수 없음<br>
+            CF 상태는 참고만
+          </div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-title hold">홀딩</div>
+          <div class="rule-content">
+            per_ratio &lt; 1.0 → 홀딩<br>
+            per_ratio ≥ 1.0 → 매도 검토<br>
+            per_ratio ≥ 2.0 → 매도
+          </div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-title sell">매도</div>
+          <div class="rule-content">
+            per_ratio ≥ 2.0 → 매도<br>
+            per_ratio 1.0+ → 검토 시작<br>
+            (홀딩 상단 임계값 최적화 필요)
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════ 5. 대형 성장주 ════════ -->
+<div class="page-section" id="growth">
+  <h2><span class="section-num">Section 05</span>대형 성장주 전략</h2>
+  <div class="section-divider"></div>
+
+  <div class="bucket-section">
+    <div class="bucket-section-header growth">
+      <span class="bucket-section-tag growth">성장</span>
+      <div>
+        <div class="bucket-section-title">대형 성장주</div>
+        <div class="bucket-section-meta">코스피200 편입 · 28분기 연속 영업이익 흑자 · 성장 가속 조건 통과 · 19종목</div>
+      </div>
+    </div>
+    <div class="bucket-section-body">
+
+      <div class="highlight-box">
+        핵심 원칙 — <strong>성장이 가속하는 초기 구간에서, 저평가된 종목을 산다. 성장이 식거나 비싸지면 판다.</strong>
+      </div>
+
+      <h3>유니버스 조건</h3>
+      <p>28분기 연속 영업이익 흑자(안정성) + 1y·2y·4y 성장 모두 양수 + 2y &gt; 4y(가속 중). 이 세 조건을 동시에 만족하는 기업만 이 버킷에 편입된다.</p>
+
+      <h3>신호 체계</h3>
+      <div class="formula-box">
+        <div class="formula-title">2개 핵심 신호</div>
+        <span class="hl-buy">Signal A (싸다)</span>  = per_ratio = per_op_20d / per_op_4y<br>
+        <br>
+        <span class="hl-buy">Signal B (가속)</span>  = acceleration = op_geom_1y / op_geom_4y<br>
+                               최근 1년 성장률 ÷ 4년 기하평균 성장률<br>
+        <br>
+        <span class="hl-buy">1순위</span>: per_ratio &lt; 0.5 + accel ≥ 2  →  mean +60.7%, median +52.5%, 손실확률 3%<br>
+        <span class="hl-buy">2순위</span>: per_ratio &lt; 0.5 단독          →  mean +37.8%, median +26.2%<br>
+        <span class="hl-acc">3순위</span>: per_ratio &lt; 1.0 + accel ≥ 2  →  mean +34.8%, median +10.7%
+      </div>
+
+      <h3>백테스트 결과 (2016Q3–2025Q4, 19종목)</h3>
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-label">ratio&lt;0.5 + accel≥2</div>
+          <div class="stat-val">+60.7%</div>
+          <div class="stat-sub">12m mean (n=30)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">median</div>
+          <div class="stat-val">+52.5%</div>
+          <div class="stat-sub">손실확률 단 3%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">ratio&lt;0.5 단독</div>
+          <div class="stat-val">+37.8%</div>
+          <div class="stat-sub">median +26.2%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">전체 평균</div>
+          <div class="stat-val warn">+21.5%</div>
+          <div class="stat-sub">median +5.6% (n=698)</div>
+        </div>
+      </div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>조합</th><th>n</th><th>mean</th><th>median</th><th>&gt;+20%</th><th>&lt;−20%</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="green">ratio&lt;0.5 + accel≥2</td><td>30</td><td class="green">+60.7%</td><td class="green">+52.5%</td><td class="green">70%</td><td class="green">3%</td></tr>
+            <tr><td>ratio&lt;0.5 단독</td><td>72</td><td class="green">+37.8%</td><td class="green">+26.2%</td><td class="green">51%</td><td class="green">4%</td></tr>
+            <tr><td>ratio&lt;1.0 + accel≥2</td><td>145</td><td>+34.8%</td><td class="yellow">+10.7%</td><td>42%</td><td>12%</td></tr>
+            <tr><td class="yellow">ratio&lt;1.0 단독</td><td>412</td><td class="yellow">+21.0%</td><td>+5.5%</td><td>35%</td><td>15%</td></tr>
+            <tr><td class="red">전체</td><td>698</td><td class="yellow">+21.5%</td><td class="red">+5.6%</td><td>37%</td><td>15%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>가속도(acceleration) 해석</h3>
+      <p>acceleration은 최근 1년 성장이 4년 역사적 CAGR보다 얼마나 빠른지를 나타낸다. 단순히 "성장 중"이 아니라 <strong>"성장이 지금 역사적 평균보다 훨씬 빨라지는 초기 구간"</strong>을 포착한다. 가속이 강할수록 수익률이 단조 증가한다.</p>
+
+      <div class="warn-box">
+        <strong>accel 해석 시 주의</strong> — acceleration이 극단적으로 높은 경우(10+ 이상)는 구조적 성장이 아닌 일회성 기저효과(희망퇴직 충격, 합병 이전 저점, 마일스톤 집중 수취)일 수 있다.
+        정성 분석으로 가속의 원인이 구조적인지 일시적인지 반드시 확인한다.
+      </div>
+
+      <div class="rule-grid">
+        <div class="rule-card">
+          <div class="rule-title buy">매수</div>
+          <div class="rule-content">
+            1순위: ratio&lt;0.5 + accel≥2<br>
+            2순위: ratio&lt;0.5 단독<br>
+            3순위: ratio&lt;1.0 + accel≥2<br>
+            해당 없으면 → 매수 없음
+          </div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-title hold">홀딩</div>
+          <div class="rule-content">
+            ratio &lt; 1.5 → 홀딩<br>
+            ratio ≥ 1.5 → 매도 검토<br>
+            accel 감소(og1&lt;og4) 시<br>
+            → ratio 무관하게 매도 검토
+          </div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-title sell">매도</div>
+          <div class="rule-content">
+            accel&lt;1 + ratio≥1.5 → 매도<br>
+            ratio≥2.0 단독 → 매도 검토<br>
+            accel&lt;1 단독 → 성장 둔화 확인
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════ 6. 중소형 성장주 ════════ -->
+<div class="page-section" id="smid">
+  <h2><span class="section-num">Section 06</span>중소형 성장주 전략</h2>
+  <div class="section-divider"></div>
+
+  <div class="bucket-section">
+    <div class="bucket-section-header smid">
+      <span class="bucket-section-tag smid">중소형</span>
+      <div>
+        <div class="bucket-section-title">중소형 성장주</div>
+        <div class="bucket-section-meta">코스피200 미편입 · 28분기 연속 순이익 흑자 · 성장 가속 조건 통과 · 52종목</div>
+      </div>
+    </div>
+    <div class="bucket-section-body">
+
+      <div class="highlight-box">
+        핵심 원칙 — <strong>싼 것을 산다. 가속 신호는 쓰지 않는다.</strong>
+        대형과 논리는 같지만 신호 체계가 다르다. 가속 신호는 오히려 역효과를 낸다.
+      </div>
+
+      <h3>대형 성장주와의 결정적 차이</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>신호</th><th>대형 성장주</th><th>중소형 성장주</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>ratio&lt;0.5 단독</td>
+              <td class="green">mean +37.8%, median +26.2%</td>
+              <td class="yellow">mean +18.2%, median +1.8%</td>
+            </tr>
+            <tr>
+              <td>ratio&lt;0.5 + accel≥2</td>
+              <td class="green">mean +60.7%, median +52.5%</td>
+              <td class="red">mean +8.8%, median +1.8%</td>
+            </tr>
+            <tr>
+              <td>accel 신호 효과</td>
+              <td class="green">+22.9%p 향상 (게임 체인저)</td>
+              <td class="red">−9.4%p 손해 (역효과)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>중소형 이익은 변동성이 크고 일회성 요인에 쉽게 왜곡된다. 중소형 성장주의 급가속은 구조적 성장이 아닌 기저효과·일회성 계약·원자재 가격 같은 <strong>비구조적 원인</strong>일 가능성이 높다. accel 신호를 추가하면 오히려 이런 노이즈를 더 많이 잡아낸다. <strong>per_ratio 단독이 최선의 전략이다.</strong></p>
+
+      <h3>백테스트 — op_accel 강도별 성과 (ratio&lt;0.5 내)</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>op_accel 구간</th><th>n</th><th>mean</th><th>median</th><th>해석</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>급가속 (5+)</td><td>49</td><td class="red">+2.7%</td><td class="red">−8.6%</td><td class="muted">기저효과·일회성 가능성 높음</td></tr>
+            <tr><td>가속 (2~5)</td><td>69</td><td class="yellow">+13.2%</td><td>+5.7%</td><td class="muted">주의 필요</td></tr>
+            <tr><td class="green">유지 (1~2)</td><td>24</td><td class="green">+56.8%</td><td>+8.0%</td><td class="muted">가장 좋으나 n 작음</td></tr>
+            <tr><td>감속 (&lt;1)</td><td>93</td><td>+22.6%</td><td>+0.0%</td><td class="muted">단독 단독도 가능</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rule-grid">
+        <div class="rule-card">
+          <div class="rule-title buy">매수</div>
+          <div class="rule-content">
+            <strong>per_ratio &lt; 0.5 → 매수</strong><br>
+            가속 신호 추가 안 함<br>
+            FCF 양수 종목 상대적 선호<br>
+            (필터로는 안 씀)
+          </div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-title hold">홀딩</div>
+          <div class="rule-content">
+            per_ratio &lt; 1.0 → 홀딩<br>
+            per_ratio ≥ 1.0 → 매도 검토<br>
+            이익 변동성 큼 → 보수적 운영
+          </div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-title sell">매도</div>
+          <div class="rule-content">
+            per_ratio ≥ 1.5 → 매도<br>
+            per_ratio 1.0+ → 검토 시작<br>
+            대형보다 보수적으로
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════ 7. 버킷 간 우선순위 ════════ -->
+<div class="page-section" id="priority">
+  <h2><span class="section-num">Section 07</span>버킷 간 우선순위</h2>
+  <div class="section-divider"></div>
+
+  <div class="highlight-box">
+    자금 집행 우선순위 — <strong>대형 성장주 &gt; 대형 밸류주 &gt; 대형 경기순환주 ≈ 중소형 성장주</strong>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>버킷</th><th>최강 신호 조합</th><th>12m mean</th><th>12m median</th><th>손실확률</th></tr>
+      </thead>
+      <tbody>
+        <tr class="comparison-row-growth">
+          <td>대형 성장주</td>
+          <td>ratio&lt;0.5 + accel≥2</td>
+          <td class="green">+60.7%</td>
+          <td class="green">+52.5%</td>
+          <td class="green">3%</td>
+        </tr>
+        <tr class="comparison-row-value">
+          <td>대형 밸류주</td>
+          <td>ratio&lt;0.5 (CF 악화 포함)</td>
+          <td class="green">+55.8%</td>
+          <td class="green">+46.9%</td>
+          <td>6%</td>
+        </tr>
+        <tr class="comparison-row-cyclical">
+          <td>대형 경기순환주</td>
+          <td>핵심신호 ON · ratio&lt;0.5</td>
+          <td class="green">+49%</td>
+          <td>+24%</td>
+          <td>12%</td>
+        </tr>
+        <tr class="comparison-row-smid">
+          <td>중소형 성장주</td>
+          <td>ratio&lt;0.5 단독</td>
+          <td class="yellow">+18.2%</td>
+          <td class="red">+1.8%</td>
+          <td>16%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>동일 자금으로 선택해야 할 때는 <strong>기대 수익률이 높고 하방 리스크가 낮은 버킷을 우선</strong>한다. 중소형 성장주는 대형 버킷에서 매수 기회가 소진된 후 잔여 자금으로 활용한다.</p>
+
+  <div class="info-box">
+    <strong>참고</strong> — 삼성바이오로직스(2025Q4)는 대형 성장주 버킷(ratio&lt;0.5 + accel≥2 충족)과 대형 밸류주 버킷(ratio&lt;0.5 충족)에서 동시 선정된 사례. 두 전략에서 모두 최우선 순위로 지목된 경우 확신도가 더 높다.
+  </div>
+</div>
+
+
+<!-- ════════ 8. 매수·홀딩·매도 요약 ════════ -->
+<div class="page-section" id="rules">
+  <h2><span class="section-num">Section 08</span>버킷별 매수·홀딩·매도 기준 요약</h2>
+  <div class="section-divider"></div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>버킷</th><th>매수 조건</th><th>홀딩 조건</th><th>매도 조건</th></tr>
+      </thead>
+      <tbody>
+        <tr class="comparison-row-cyclical">
+          <td><strong>경기순환주</strong></td>
+          <td class="muted">핵심신호 ON<br>streak 1~2 우선<br>ratio &lt; 2.0</td>
+          <td class="muted">핵심신호 ON 유지<br>ratio &lt; 2.0 (장기형 예외)</td>
+          <td class="muted">신호 OFF + ratio &gt; 2.0<br>신호 OFF 단독 → 검토</td>
+        </tr>
+        <tr class="comparison-row-value">
+          <td><strong>대형 밸류주</strong></td>
+          <td class="muted">ratio &lt; 0.5<br>없으면 사지 않음</td>
+          <td class="muted">ratio &lt; 1.0</td>
+          <td class="muted">ratio ≥ 2.0 → 매도<br>ratio ≥ 1.0 → 검토</td>
+        </tr>
+        <tr class="comparison-row-growth">
+          <td><strong>대형 성장주</strong></td>
+          <td class="muted">1순위: ratio&lt;0.5 + accel≥2<br>2순위: ratio&lt;0.5 단독<br>3순위: ratio&lt;1.0 + accel≥2</td>
+          <td class="muted">ratio &lt; 1.5<br>accel 유지 중</td>
+          <td class="muted">accel&lt;1 + ratio≥1.5 → 매도<br>ratio≥2.0 단독 → 검토</td>
+        </tr>
+        <tr class="comparison-row-smid">
+          <td><strong>중소형 성장주</strong></td>
+          <td class="muted">ratio &lt; 0.5<br>가속 신호 사용 안 함<br>FCF 양수 상대적 선호</td>
+          <td class="muted">ratio &lt; 1.0</td>
+          <td class="muted">ratio ≥ 1.5 → 매도<br>ratio ≥ 1.0 → 검토</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="info-box">
+    <strong>정성 분석 원칙</strong> — 정량 신호가 매수 기준에 도달한 종목에만 정성 분석을 수행한다. 관찰 종목은 핵심만 파악(무엇이 매수 조건이고 언제 충족되는가). 매수 대상 종목만 깊게 조사(비즈니스·현황·투자 포인트·리스크).
+    신호 왜곡(일회성 이익, 기저효과, 회계 이슈)은 정성 분석에서만 잡아낼 수 있다.
+  </div>
+</div>
+
+</main>
+
+<footer>
+  <p>방법론 v1 · as_of 2025Q4 · 백테스트 기간 2016Q3–2025Q4</p>
+  <p><a href="2025Q4_stock_portfolio.html">→ 2025Q4 분기 리포트</a> · 본 문서는 투자 참고 자료이며 투자 권유가 아닙니다.</p>
+</footer>
+
+</body>
+</html>

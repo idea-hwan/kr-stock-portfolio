@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>포트폴리오 리포트 2025Q4</title>
+<style>
+  :root {
+    --bg:       #0d1117;
+    --bg2:      #161b22;
+    --bg3:      #21262d;
+    --border:   #30363d;
+    --text:     #e6edf3;
+    --muted:    #8b949e;
+    --buy:      #3fb950;
+    --buy-bg:   #0d2818;
+    --watch:    #d29922;
+    --watch-bg: #2a1f0a;
+    --hold:     #388bfd;
+    --hold-bg:  #0c1f3b;
+    --sell:     #f85149;
+    --sell-bg:  #2d0f0f;
+    --accent:   #58a6ff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 16px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+  header .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  header .meta span { margin-right: 12px; }
+  header .strategy-link {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--accent);
+    text-decoration: none;
+    opacity: 0.8;
+  }
+  header .strategy-link:hover { opacity: 1; text-decoration: underline; }
+
+  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 60px; }
+  section { margin-bottom: 32px; }
+
+  h2 {
+    font-size: 13px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--muted);
+    margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+
+  /* ── 액션 카드 그리드 ── */
+  .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 560px) { .action-grid { grid-template-columns: 1fr; } }
+
+  .action-card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 16px;
+  }
+  .action-card .card-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+    margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+  .card-buy   .card-title { color: var(--buy);   border-color: var(--buy-bg); }
+  .card-watch .card-title { color: var(--watch); border-color: var(--watch-bg); }
+  .card-hold  .card-title { color: var(--hold);  border-color: var(--hold-bg); }
+  .card-sell  .card-title { color: var(--sell);  border-color: var(--sell-bg); }
+
+  .stock-row {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 6px 0; border-bottom: 1px solid var(--border);
+  }
+  .stock-row:last-child { border-bottom: none; }
+  .stock-name { font-weight: 600; font-size: 14px; }
+  .stock-meta { font-size: 11px; color: var(--muted); text-align: right; flex-shrink: 0; margin-left: 8px; }
+
+  .badge {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    padding: 1px 6px; border-radius: 4px; margin-left: 4px;
+  }
+  .badge-buy   { background: var(--buy-bg);   color: var(--buy);   }
+  .badge-watch { background: var(--watch-bg); color: var(--watch); }
+  .badge-hold  { background: var(--hold-bg);  color: var(--hold);  }
+  .badge-sell  { background: var(--sell-bg);  color: var(--sell);  }
+
+  .note {
+    background: var(--bg2); border-left: 3px solid var(--border);
+    padding: 10px 14px; border-radius: 0 6px 6px 0;
+    color: var(--muted); font-size: 12px; margin-top: 8px;
+  }
+  .note.buy-note   { border-color: var(--buy); }
+  .note.watch-note { border-color: var(--watch); }
+
+  /* ── Accordion ── */
+  .accordion {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 8px; margin-bottom: 10px; overflow: hidden;
+  }
+  .accordion-header {
+    width: 100%; background: none; border: none; cursor: pointer;
+    padding: 14px 16px; display: flex; align-items: center;
+    justify-content: space-between; color: var(--text); text-align: left; gap: 8px;
+  }
+  .accordion-header:hover { background: var(--bg3); }
+  .acc-left { display: flex; align-items: center; gap: 10px; }
+  .acc-tag {
+    font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px;
+    letter-spacing: 0.5px; flex-shrink: 0;
+  }
+  .tag-cyclical { background: #1a2a1a; color: #3fb950; }
+  .tag-value    { background: #1a1a2e; color: #8b5cf6; }
+  .tag-growth   { background: #1a2535; color: #38bdf8; }
+  .tag-smid     { background: #2a2010; color: #d29922; }
+  .acc-title  { font-size: 14px; font-weight: 600; }
+  .acc-sub    { font-size: 11px; color: var(--muted); }
+  .acc-arrow  { color: var(--muted); font-size: 12px; transition: transform 0.2s; flex-shrink: 0; }
+  .accordion.open .acc-arrow { transform: rotate(180deg); }
+  .accordion-body { display: none; padding: 0 16px 20px; border-top: 1px solid var(--border); }
+  .accordion.open .accordion-body { display: block; }
+
+  /* ── 전략 요약 박스 ── */
+  .strategy-box {
+    background: var(--bg3); border-radius: 6px; padding: 12px 14px;
+    margin: 14px 0; font-size: 12px; color: var(--muted);
+  }
+  .strategy-box strong { color: var(--text); }
+
+  /* ── 수치 강조 ── */
+  .num       { color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .num-buy   { color: var(--buy);   font-weight: 600; }
+  .num-watch { color: var(--watch); font-weight: 600; }
+  .num-sell  { color: var(--sell);  font-weight: 600; }
+
+  /* ── 표 ── */
+  .tbl-wrap { overflow-x: auto; margin: 12px 0; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 480px; }
+  th {
+    background: var(--bg3); color: var(--muted); font-weight: 600; text-align: left;
+    padding: 7px 10px; white-space: nowrap; border-bottom: 1px solid var(--border);
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg3); }
+  td.muted { color: var(--muted); font-size: 11px; }
+  td.right { text-align: right; }
+  .row-buy  td:first-child { border-left: 2px solid var(--buy);  }
+  .row-watch td:first-child { border-left: 2px solid var(--watch); }
+  .row-sell td:first-child { border-left: 2px solid var(--sell); }
+  .row-hold td:first-child { border-left: 2px solid var(--hold); }
+
+  /* ── 백테스트 수치 그리드 ── */
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 8px; margin: 14px 0;
+  }
+  .stat-box { background: var(--bg3); border-radius: 6px; padding: 10px 12px; text-align: center; }
+  .stat-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+  .stat-val   { font-size: 18px; font-weight: 700; color: var(--buy); }
+  .stat-sub   { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* ── 소섹션 제목 ── */
+  .sub-section-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--muted);
+    margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  }
+
+  /* ── 종목 상세 카드 ── */
+  .detail-card {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px; margin-bottom: 10px;
+  }
+  .detail-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 8px; margin-bottom: 10px; flex-wrap: wrap;
+  }
+  .detail-name { font-size: 15px; font-weight: 700; color: var(--text); }
+  .detail-signals { display: flex; gap: 6px; flex-wrap: wrap; }
+  .signal-chip {
+    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+    background: var(--bg3); color: var(--muted); white-space: nowrap;
+  }
+  .signal-chip.buy   { background: var(--buy-bg);   color: var(--buy);   }
+  .signal-chip.watch { background: var(--watch-bg); color: var(--watch); }
+  .signal-chip.sell  { background: var(--sell-bg);  color: var(--sell);  }
+  .signal-chip.hold  { background: var(--hold-bg);  color: var(--hold);  }
+
+  .detail-section { font-size: 12px; color: var(--muted); line-height: 1.8; margin-bottom: 8px; }
+  .detail-section strong { color: var(--text); }
+  .detail-section p { margin-bottom: 3px; }
+
+  .detail-alert {
+    margin-top: 10px; padding: 8px 12px; border-radius: 6px;
+    font-size: 11px; line-height: 1.6;
+  }
+  .detail-alert.risk  { background: var(--sell-bg);  color: #f4a0a0; border-left: 3px solid var(--sell); }
+  .detail-alert.warn  { background: var(--watch-bg); color: #e5c77a; border-left: 3px solid var(--watch); }
+  .detail-alert.info  { background: var(--hold-bg);  color: #80b0ff; border-left: 3px solid var(--hold); }
+
+  .caution-box {
+    background: #1a1408; border: 1px solid #3d3010;
+    border-left: 3px solid var(--watch); border-radius: 0 6px 6px 0;
+    padding: 10px 14px; margin-bottom: 8px;
+    font-size: 12px; color: var(--muted); line-height: 1.7;
+  }
+  .caution-box .caution-title { font-size: 12px; font-weight: 700; color: var(--watch); margin-bottom: 4px; }
+  .caution-box.danger { background: var(--sell-bg); border-color: #5a2020; border-left-color: var(--sell); }
+  .caution-box.danger .caution-title { color: var(--sell); }
+
+  /* ── 푸터 ── */
+  footer {
+    text-align: center; color: var(--muted); font-size: 11px;
+    padding: 24px 16px; border-top: 1px solid var(--border);
+  }
+  footer p { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>포트폴리오 리포트</h1>
+  <div class="meta">
+    <span>2025Q4 기준</span>
+    <span>작성 2026-04-14</span>
+    <span>162종목 스크리닝 → 매수 4 · 관찰 6 · 홀딩 6 · 매도검토 6</span>
+  </div>
+  <a href="investment_strategy.html" class="strategy-link">↗ 선정 전략 방법론 문서 보기</a>
+</header>
+
+<main>
+
+<!-- ════════ 1. 액션 요약 ════════ -->
+<section>
+  <h2>액션 요약</h2>
+  <div class="action-grid">
+
+    <div class="action-card card-buy">
+      <div class="card-title">즉시 매수</div>
+      <div class="stock-row">
+        <div>
+          <span class="stock-name">삼성바이오로직스</span>
+          <span class="badge badge-buy">밸류+성장</span>
+        </div>
+        <div class="stock-meta">ratio 0.39 · accel 2.1</div>
+      </div>
+      <div class="stock-row">
+        <div>
+          <span class="stock-name">씨에스윈드</span>
+          <span class="badge badge-buy">성장</span>
+        </div>
+        <div class="stock-meta">ratio 0.30 · 극단 저평가</div>
+      </div>
+      <div class="stock-row">
+        <div>
+          <span class="stock-name">HD현대</span>
+          <span class="badge badge-buy">순환</span>
+        </div>
+        <div class="stock-meta">ratio 0.98 · streak 1</div>
+      </div>
+      <div class="stock-row">
+        <div>
+          <span class="stock-name">DB하이텍</span>
+          <span class="badge badge-buy">순환</span>
+        </div>
+        <div class="stock-meta">ratio 1.98 · streak 1</div>
+      </div>
+      <div class="note buy-note">
+        삼성바이오로직스는 밸류·성장 두 버킷에서 동시 선정.<br>
+        씨에스윈드는 트럼프 해상풍력 리스크 과잉반영 — 본체는 육상 타워.
+      </div>
+    </div>
+
+    <div class="action-card card-watch">
+      <div class="card-title">핵심 관찰 — ratio 하락 시 매수</div>
+      <div class="stock-row">
+        <div><span class="stock-name">KT</span><span class="badge badge-watch">밸류</span></div>
+        <div class="stock-meta">ratio 0.79 · δ −1.28</div>
+      </div>
+      <div class="stock-row">
+        <div><span class="stock-name">셀트리온</span><span class="badge badge-watch">밸류</span></div>
+        <div class="stock-meta">ratio 0.82 · δ −0.69</div>
+      </div>
+      <div class="stock-row">
+        <div><span class="stock-name">삼양식품</span><span class="badge badge-watch">밸류</span></div>
+        <div class="stock-meta">ratio 0.90 · δ −0.66</div>
+      </div>
+      <div class="stock-row">
+        <div><span class="stock-name">카카오</span><span class="badge badge-watch">성장</span></div>
+        <div class="stock-meta">ratio 0.65 · accel 8.7</div>
+      </div>
+      <div class="stock-row">
+        <div><span class="stock-name">한국카본</span><span class="badge badge-watch">성장</span></div>
+        <div class="stock-meta">ratio 0.71 · accel 3.8</div>
+      </div>
+      <div class="stock-row">
+        <div><span class="stock-name">미스토홀딩스</span><span class="badge badge-watch">성장</span></div>
+        <div class="stock-meta">ratio 0.86 · accel 23.9</div>
+      </div>
+      <div class="note watch-note">
+        밸류 3종목: CF 악화 원인이 일시적(구조조정·합병·CAPEX).<br>
+        성장 3종목: ratio 0.5 진입 시 accel 신호와 결합 → 1순위 전환.
+      </div>
+    </div>
+
+    <div class="action-card card-hold">
+      <div class="card-title">홀딩 — 이미 보유 시</div>
+      <div class="stock-row">
+        <span class="stock-name">HD한국조선해양</span>
+        <div class="stock-meta">ratio 0.14 · streak 17</div>
+      </div>
+      <div class="stock-row">
+        <span class="stock-name">SK하이닉스</span>
+        <div class="stock-meta">ratio 0.52 · streak 5</div>
+      </div>
+      <div class="stock-row">
+        <span class="stock-name">이수페타시스</span>
+        <div class="stock-meta">ratio 0.74 · streak 3</div>
+      </div>
+      <div class="stock-row">
+        <span class="stock-name">현대로템</span>
+        <div class="stock-meta">ratio 0.93 · streak 12</div>
+      </div>
+      <div class="stock-row">
+        <span class="stock-name">엘앤에프</span>
+        <div class="stock-meta">ratio 0.93 · streak 17</div>
+      </div>
+      <div class="stock-row">
+        <span class="stock-name">한화에어로스페이스</span>
+        <div class="stock-meta">ratio 2.14 · 신호 ON</div>
+      </div>
+    </div>
+
+    <div class="action-card card-sell">
+      <div class="card-title">매도 검토</div>
+      <div class="stock-row">
+        <span class="stock-name">풍산</span>
+        <div class="stock-meta">전 신호 OFF · ratio 2.30</div>
+      </div>
+      <div class="stock-row">
+        <span class="stock-name">LIG넥스원</span>
+        <div class="stock-meta">capex −57% · ratio 2.35</div>
+      </div>
+      <div class="stock-row">
+        <span class="stock-name">POSCO홀딩스</span>
+        <div class="stock-meta">전 신호 OFF · ratio 2.61</div>
+      </div>
+      <div class="stock-row">
+        <span class="stock-name">한미반도체</span>
+        <div class="stock-meta">s1 OFF · ratio 2.80</div>
+      </div>
+      <div class="stock-row">
+        <span class="stock-name">LG이노텍</span>
+        <div class="stock-meta">전 신호 OFF · ratio 2.18</div>
+      </div>
+      <div class="stock-row">
+        <span class="stock-name">두산에너빌리티</span>
+        <div class="stock-meta">ratio 5.21 · capex 감속</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ════════ 2. 버킷별 상세 ════════ -->
+<section>
+  <h2>버킷별 전략 &amp; 분석</h2>
+
+  <!-- ── 경기순환주 ── -->
+  <div class="accordion" id="acc-cyclical">
+    <button class="accordion-header" onclick="toggle('acc-cyclical')">
+      <div class="acc-left">
+        <span class="acc-tag tag-cyclical">순환</span>
+        <div>
+          <div class="acc-title">대형 경기순환주</div>
+          <div class="acc-sub">34종목 · 매수 2 · 홀딩 6 · 매도검토 6</div>
+        </div>
+      </div>
+      <span class="acc-arrow">▼</span>
+    </button>
+    <div class="accordion-body">
+
+      <div class="strategy-box">
+        <strong>전략</strong> — 글로벌 경쟁력을 보유한 경기순환주의 사이클 저점에서 진입한다.
+        s1(싸다: per_ratio &lt; 1.0)과 s2(Capex 증가)가 핵심 신호.
+        <strong>streak 1~2 진입 타이밍이 최적.</strong>
+        핵심신호 ON이 유지되는 한 홀딩. 신호 OFF + ratio &gt; 2.0에서 매도.
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-label">핵심신호 ON 전체</div>
+          <div class="stat-val">+43%</div>
+          <div class="stat-sub">12m mean (n=628)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">ratio &lt; 0.5</div>
+          <div class="stat-val">+49%</div>
+          <div class="stat-sub">12m mean (n=192)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">신호 ON median</div>
+          <div class="stat-val">+21%</div>
+          <div class="stat-sub">&gt;+20% 확률 50%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">매도 구간 (2.0+)</div>
+          <div class="stat-val num-sell">25%</div>
+          <div class="stat-sub">&lt;−20% 확률 (신호OFF)</div>
+        </div>
+      </div>
+
+      <!-- 신규 매수 -->
+      <div class="sub-section-title">이번 분기 신규 진입 — streak 1 초입형 매수</div>
+
+      <div class="detail-card">
+        <div class="detail-header">
+          <span class="detail-name">HD현대</span>
+          <div class="detail-signals">
+            <span class="signal-chip buy">s1 ON</span>
+            <span class="signal-chip buy">s2 ON</span>
+            <span class="signal-chip buy">s3 ON</span>
+            <span class="signal-chip buy">streak 1</span>
+            <span class="signal-chip buy">ratio 0.98</span>
+          </div>
+        </div>
+        <div class="detail-section">
+          <p><strong>비즈니스</strong> — 조선 지주사. HD한국조선해양(세계 최대 조선사)·HD현대미포·HD현대삼호를 보유. 조선 사이클 수익을 지주사 레벨에서 집약 수취.</p>
+          <p><strong>현황</strong> — 2026 수주 목표 268억달러(전년比 +17.5%). 2026 1분기 예상 영업이익 8,070억(+86% YoY). LNG선 2026년 발주 100척 전망(전년 50척의 2배). 미국 군수지원함 수주 결과 2026 상반기 발표 예정.</p>
+          <p><strong>투자 포인트</strong> — 이번 분기 s1 신규 진입(streak 1): per_ratio 0.98로 4년 평균 PER에 처음 도달. s1+s2+s3 전 신호 동시 ON에 capex 가속 중. HD한국조선해양 직접 투자 대비 지주사 할인이 적용된 상태.</p>
+        </div>
+        <div class="detail-alert warn">주의 — 지주사 할인 구조로 자회사 실적이 주가에 즉각 반영 안 될 수 있음. 군수지원함 수주 실패 시 단기 모멘텀 약화 가능.</div>
+      </div>
+
+      <div class="detail-card">
+        <div class="detail-header">
+          <span class="detail-name">DB하이텍</span>
+          <div class="detail-signals">
+            <span class="signal-chip buy">s2 ON</span>
+            <span class="signal-chip buy">s3 ON</span>
+            <span class="signal-chip buy">streak 1</span>
+            <span class="signal-chip warn" style="background:#2a1f0a;color:#d29922;">ratio 1.98</span>
+          </div>
+        </div>
+        <div class="detail-section">
+          <p><strong>비즈니스</strong> — 8인치 아날로그·전력반도체 파운드리. 전력관리IC(PMIC), 디스플레이 드라이버IC 국내 독보적. 글로벌 8인치 파운드리 수급 사이클에 직접 연동.</p>
+          <p><strong>현황</strong> — 2024 매출 1.13조, 영업이익 1,908억(+33% YoY). 상우공장 클린룸 확장으로 최종 19만장/월 생산능력 확보 목표. GaN/SiC 전력반도체 신사업: 2026년까지 4,000억 투자, 8인치 GaN 월 1만장 목표. 전력반도체 시장 두 자릿수 성장 전망.</p>
+          <p><strong>투자 포인트</strong> — capex +17% 방향 전환(직전 −58%에서 반전) — 투자 재개 신호. 기존 아날로그 파운드리 사이클 회복에 GaN/SiC 신사업 모멘텀 추가. 8인치 파운드리 글로벌 공급 부족 수혜 구간.</p>
+        </div>
+        <div class="detail-alert warn">주의 — ratio 1.98로 2.0 직전. 신호 지속 확인 필수. GaN/SiC 전환 성과는 2027년 이후 본격 가시화.</div>
+      </div>
+
+      <!-- 홀딩 -->
+      <div class="sub-section-title">신호 ON 유지 — 홀딩 종목</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>종목</th><th>ratio</th><th>streak</th><th>s1</th><th>s2</th><th>s3</th><th>업황 요약</th></tr>
+          </thead>
+          <tbody>
+            <tr class="row-hold">
+              <td>HD한국조선해양</td>
+              <td class="num">0.14</td><td>17 ★</td>
+              <td class="num-buy">ON</td><td class="num-buy">ON</td><td class="num-buy">ON</td>
+              <td class="muted">2025 영업이익 +172%. LNG선 2026년 100척 발주 전망. 수주잔고 역대 최고</td>
+            </tr>
+            <tr class="row-hold">
+              <td>SK하이닉스</td>
+              <td class="num">0.52</td><td>5</td>
+              <td class="num-buy">ON</td><td class="num-buy">ON</td><td class="num-buy">ON</td>
+              <td class="muted">HBM 54% 성장. 엔비디아 점유율 63%. 영업이익 100조+ 전망</td>
+            </tr>
+            <tr class="row-hold">
+              <td>이수페타시스</td>
+              <td class="num">0.74</td><td>3</td>
+              <td class="num-buy">ON</td><td class="num-buy">ON</td><td class="num-buy">ON</td>
+              <td class="muted">구글·메타·앤트로픽 고객사. AI 서버 PCB 수주 가속 중</td>
+            </tr>
+            <tr class="row-hold">
+              <td>현대로템</td>
+              <td class="num">0.93</td><td>12 ★</td>
+              <td class="num-buy">ON</td><td class="num-buy">ON</td><td class="num-buy">ON</td>
+              <td class="muted">폴란드 2차 8.9조 계약 완료. 이라크 9조 협상 진행 중</td>
+            </tr>
+            <tr class="row-hold">
+              <td>엘앤에프</td>
+              <td class="num">0.93</td><td>17 ★</td>
+              <td class="num-buy">ON</td><td class="muted">off</td><td class="num-buy">ON</td>
+              <td class="muted">1Q26 영업이익 흑자전환 예상. 테슬라 N95 독점공급 + LFP 1.6조 수주</td>
+            </tr>
+            <tr class="row-hold">
+              <td>포스코퓨처엠</td>
+              <td class="num">0.88</td><td>4</td>
+              <td class="num-buy">ON</td><td class="muted">off</td><td class="muted">off</td>
+              <td class="muted">얼티엄셀즈 가동 중단 영향 단기 부진. 2026 하반기 회복 예상</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 주의 홀딩 -->
+      <div class="sub-section-title">주의 홀딩 — ratio 2.0 초과, 신호 ON 유지 중</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>종목</th><th>ratio</th><th>streak</th><th>s2</th><th>비고</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>한화에어로스페이스</td>
+              <td class="num-watch">2.14</td><td>16 ★</td>
+              <td class="num-buy">ON</td>
+              <td class="muted">수주잔고 37.2조. 노르웨이 천무 1.3조 체결. ratio 높지만 신호 유지로 홀딩</td>
+            </tr>
+            <tr>
+              <td>두산에너빌리티</td>
+              <td class="num-sell">5.21</td><td>10</td>
+              <td class="num-buy">ON</td>
+              <td class="muted">수주목표 14.3조. 단 ratio 극단 + capex 감속. 신호 OFF 즉시 매도 준비</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 매도 검토 -->
+      <div class="sub-section-title">매도 검토 — 신호 OFF 또는 ratio 고점</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>종목</th><th>ratio</th><th>s1</th><th>s2</th><th>s3</th><th>매도 사유</th></tr>
+          </thead>
+          <tbody>
+            <tr class="row-sell">
+              <td>풍산</td><td class="num-sell">2.30</td>
+              <td class="muted">off</td><td class="muted">off</td><td class="muted">off</td>
+              <td class="muted">전 신호 동시 OFF</td>
+            </tr>
+            <tr class="row-sell">
+              <td>LIG넥스원</td><td class="num-sell">2.35</td>
+              <td class="muted">off</td><td class="muted">off</td><td class="num-buy">ON</td>
+              <td class="muted">capex −57% 급감. 핵심신호(s2) OFF</td>
+            </tr>
+            <tr class="row-sell">
+              <td>POSCO홀딩스</td><td class="num-sell">2.61</td>
+              <td class="muted">off</td><td class="muted">off</td><td class="muted">off</td>
+              <td class="muted">전 신호 동시 OFF</td>
+            </tr>
+            <tr class="row-sell">
+              <td>한미반도체</td><td class="num-sell">2.80</td>
+              <td class="muted">off</td><td class="muted">off</td><td class="muted">off</td>
+              <td class="muted">s1 OFF + ratio 고점</td>
+            </tr>
+            <tr class="row-sell">
+              <td>LG이노텍</td><td class="num-sell">2.18</td>
+              <td class="muted">off</td><td class="muted">off</td><td class="muted">off</td>
+              <td class="muted">전 신호 동시 OFF</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── 대형 밸류주 ── -->
+  <div class="accordion" id="acc-value">
+    <button class="accordion-header" onclick="toggle('acc-value')">
+      <div class="acc-left">
+        <span class="acc-tag tag-value">밸류</span>
+        <div>
+          <div class="acc-title">대형 밸류주</div>
+          <div class="acc-sub">57종목 · 매수 1 · 핵심관찰 3 · 유의 2</div>
+        </div>
+      </div>
+      <span class="acc-arrow">▼</span>
+    </button>
+    <div class="accordion-body">
+
+      <div class="strategy-box">
+        <strong>전략</strong> — 28분기 연속 흑자 유지 기업들. 성과는 오직 <strong>얼마나 싸게 샀는가</strong>로 결정된다.
+        per_ratio &lt; 0.5 단독 기준. 없으면 사지 않는다. 기준을 낮추지 않는다.
+        현금흐름이 나쁠수록 반등 강도가 강하다 — 이유가 일시적이면 오히려 매력.
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-label">ratio &lt; 0.5</div>
+          <div class="stat-val">+32.7%</div>
+          <div class="stat-sub">12m mean · 손실확률 6%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">median</div>
+          <div class="stat-val">+22.3%</div>
+          <div class="stat-sub">ratio &lt; 0.5 (n=235)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">0.5~1.0 구간</div>
+          <div class="stat-val num-watch">+8.1%</div>
+          <div class="stat-sub">median −2.0%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">CF 모두 악화 + ratio&lt;0.5</div>
+          <div class="stat-val">+55.8%</div>
+          <div class="stat-sub">mean · median +46.9%</div>
+        </div>
+      </div>
+
+      <!-- 매수 대상 -->
+      <div class="sub-section-title">매수 대상 (ratio &lt; 0.5)</div>
+
+      <div class="detail-card">
+        <div class="detail-header">
+          <span class="detail-name">삼성바이오로직스</span>
+          <div class="detail-signals">
+            <span class="signal-chip buy">ratio 0.39</span>
+            <span class="signal-chip buy">δ −0.27</span>
+            <span class="signal-chip buy">유일 매수 기준 충족</span>
+          </div>
+        </div>
+        <div class="detail-section">
+          <p><strong>비즈니스</strong> — CMO(위탁생산)/CDO(위탁개발) 글로벌 1~2위. 삼성에피스(바이오시밀러) 포함 삼성그룹 바이오 전체 허브. 고정비 레버리지 구조 — 가동률 상승 시 이익 폭발.</p>
+          <p><strong>현황</strong> — 4공장 가동 안정화. 5공장 2025년 말 완공 목표, 6공장 건설 착수. 글로벌 빅파마 멀티플 CMO 계약 지속 확대. CFO +789% · FCF +2869% (현금 창출 우수).</p>
+          <p><strong>투자 포인트</strong> — 28분기 연속 흑자 57종목 중 유일한 ratio &lt; 0.5 종목. per_ratio 0.39 — 4년 평균 PER의 40% 수준. 대형 성장주 버킷에서도 동시 선정(두 전략에서 모두 1순위).</p>
+        </div>
+        <div class="detail-alert info">참고 — CFO·FCF 모두 우수해 백테스트상 "ratio&lt;0.5 + CF 양호" 조합 mean +25.7%로 단독(+32.7%)보다 낮을 수 있음. 매수는 유효하나 기대 수익률 참고 후 집행.</div>
+      </div>
+
+      <!-- 핵심 관찰 -->
+      <div class="sub-section-title">핵심 관찰 — CF 악화 원인이 일시적인 종목 (ratio 0.5 진입 시 매수)</div>
+
+      <div class="detail-card">
+        <div class="detail-header">
+          <span class="detail-name">KT</span>
+          <div class="detail-signals">
+            <span class="signal-chip watch">ratio 0.79</span>
+            <span class="signal-chip buy">δ −1.28 (가장 빠름)</span>
+            <span class="signal-chip">CF 악화: 일회성 완료</span>
+          </div>
+        </div>
+        <div class="detail-section">
+          <p><strong>CF 악화 원인</strong> — 2024년 4분기 희망퇴직 비용 ~1조원 일회성 충격. 영업이익 4분기 −5,279억 손실. 구조적 문제 아님.</p>
+          <p><strong>현황</strong> — 2025년 구조조정 완료 후 연간 순이익 +340% 회복. 인건비 연 3,000억 절감 효과 가시화. 2025년 연간 순이익 1조 8,369억원. AI·보안·데이터센터(가산 26MW) 투자 지속.</p>
+          <p><strong>진입 조건</strong> — 57종목 중 delta −1.28로 가장 빠른 ratio 하락. 조만간 0.5대 진입 가능성. CF 악화의 직접 원인(구조조정 비용) 완전 해소됨.</p>
+        </div>
+        <div class="detail-alert warn">★ ratio 0.5 접근 시 최우선 관찰. CAPEX는 구조적으로 높은 수준 유지 — 완전한 FCF 정상화는 단계적.</div>
+      </div>
+
+      <div class="detail-card">
+        <div class="detail-header">
+          <span class="detail-name">셀트리온</span>
+          <div class="detail-signals">
+            <span class="signal-chip watch">ratio 0.82</span>
+            <span class="signal-chip buy">δ −0.69</span>
+            <span class="signal-chip">합병 일회성 완료</span>
+          </div>
+        </div>
+        <div class="detail-section">
+          <p><strong>CF 악화 원인</strong> — 2023년 12월 셀트리온헬스케어 합병 후 ①고원가 재고 소진(2024년 매출원가율 63% → 2025년 20%대) ②무형자산 상각 1,433억(2024년 완료) ③미국 뉴저지 공장 인수 ~4,600억.</p>
+          <p><strong>현황</strong> — 2025년 영업이익 +137%(1조 1,655억). 매출 4조 1분기 달성. 합병 관련 일회성 비용 대부분 2024년 완료. 미국 CDMO 포함 4조원 중기 투자 계획 지속.</p>
+          <p><strong>진입 조건</strong> — 영업이익 급반등으로 실질 수익력 회복 확인. 합병 일회성은 종료. 대규모 CAPEX가 중기적으로 FCF 억제 중이나 성장 투자 성격.</p>
+        </div>
+        <div class="detail-alert warn">★ ratio 0.7대 진입 시 관찰 강도 높일 것. 4조원 CAPEX 계획은 투자 완료 전까지 FCF 제한적.</div>
+      </div>
+
+      <div class="detail-card">
+        <div class="detail-header">
+          <span class="detail-name">삼양식품</span>
+          <div class="detail-signals">
+            <span class="signal-chip watch">ratio 0.90</span>
+            <span class="signal-chip buy">δ −0.66</span>
+            <span class="signal-chip">성장 CAPEX 일시적</span>
+          </div>
+        </div>
+        <div class="detail-section">
+          <p><strong>CF 악화 원인</strong> — 2025년 CAPEX 4,716억 폭증: 밀양 2공장(1,830억, 2025년 6월 완공) + 중국 자싱공장(2,072억, 2027년 완공) + 사옥이전(2,270억). CAPEX가 CFO를 압도해 FCF −1,548억 전환.</p>
+          <p><strong>현황</strong> — 불닭볶음면 글로벌 수출 급증(미국·유럽·중국 동시 성장). CFO 자체는 꾸준히 증가 중(902억 → 2,070억 → 2,369억). 한국신용평가 첫 평가 AA− 부여. 재무건전성 양호. 2026년 CAPEX 1,000억대 정상화 후 FCF 4,000억+ 전망.</p>
+          <p><strong>진입 조건</strong> — CFO는 증가 중. FCF 악화는 순수하게 성장 설비투자 탓. 불닭 수출 성장 지속 확인 필수.</p>
+        </div>
+        <div class="detail-alert warn">★ ratio 0.7~0.8대 진입 시 매력적. 미국 관세 리스크가 불닭 수출에 미치는 영향 모니터링 필요.</div>
+      </div>
+
+      <!-- 유의 관찰 -->
+      <div class="sub-section-title">유의 관찰 — 이익 왜곡 또는 구조적 리스크</div>
+
+      <div class="caution-box">
+        <div class="caution-title">유한양행 — ratio 0.56 · 이익 왜곡 주의</div>
+        ratio가 한 분기 만에 2.88 → 0.56으로 급락. 원인은 렉라자+리브리반트 병용요법 유럽·중국 출시 마일스톤 집중 수취($4,500만 + $3,000만).
+        영업이익 2025년 창사 첫 1,000억 돌파 — 대부분 일회성 마일스톤. <strong>정상화 이익 기준 per_ratio는 훨씬 높을 수 있음.</strong>
+      </div>
+
+      <div class="caution-box danger">
+        <div class="caution-title">한국타이어앤테크놀로지 — ratio 0.76 · 구조적 리스크 포함</div>
+        테네시 공장(3조원) + 헝가리 공장(8,600억) 동시 집행 + 한온시스템 인수(~3조원). <strong>한온시스템의 4.5조원 부채와 이자비용 연 2,600억원은 구조적 위험.</strong>
+        전기차 캐즘으로 회복 지연. delta +0.16으로 ratio 상승 중 — 비중 축소 관점 유지.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── 대형 성장주 ── -->
+  <div class="accordion" id="acc-growth">
+    <button class="accordion-header" onclick="toggle('acc-growth')">
+      <div class="acc-left">
+        <span class="acc-tag tag-growth">성장</span>
+        <div>
+          <div class="acc-title">대형 성장주</div>
+          <div class="acc-sub">19종목 · 매수 2 · 핵심관찰 3 · 유의 4</div>
+        </div>
+      </div>
+      <span class="acc-arrow">▼</span>
+    </button>
+    <div class="accordion-body">
+
+      <div class="strategy-box">
+        <strong>전략</strong> — 28분기 연속 흑자 + 성장 가속 중인 기업. 싸고(per_ratio &lt; 0.5) 성장이 가속(accel ≥ 2)하는 초기 구간을 산다.
+        <strong>accel = op_g1y / op_g4y ≥ 2</strong> (최근 1년 성장이 4년 CAGR의 2배 이상).
+        두 신호의 조합이 백테스트 최강 — mean +60.7%, median +52.5%, 손실확률 3%.
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-label">ratio&lt;0.5 + accel≥2</div>
+          <div class="stat-val">+60.7%</div>
+          <div class="stat-sub">12m mean (n=30)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">median</div>
+          <div class="stat-val">+52.5%</div>
+          <div class="stat-sub">손실확률 단 3%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">ratio&lt;0.5 단독</div>
+          <div class="stat-val num-watch">+37.8%</div>
+          <div class="stat-sub">accel 없는 경우</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">ratio&lt;1.0 + accel≥2</div>
+          <div class="stat-val num-watch">+34.8%</div>
+          <div class="stat-sub">3순위 조합</div>
+        </div>
+      </div>
+
+      <!-- 전체 현황 -->
+      <div class="sub-section-title">2025Q4 전체 현황 (19종목)</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>종목</th><th>ratio</th><th>accel</th><th>capex_g1</th><th>fcf_ps</th><th>판단</th></tr>
+          </thead>
+          <tbody>
+            <tr class="row-buy">
+              <td><strong>씨에스윈드</strong></td>
+              <td class="num-buy">0.30</td><td class="muted">0.78</td><td>−1754%</td><td>+10,303</td>
+              <td class="muted">★매수 (ratio 극단 저평가)</td>
+            </tr>
+            <tr class="row-buy">
+              <td><strong>삼성바이오로직스</strong></td>
+              <td class="num-buy">0.39</td><td class="num-buy">2.06 ★</td><td>+173%</td><td>+13,672</td>
+              <td class="muted">★★매수 1순위 (ratio+accel 동시)</td>
+            </tr>
+            <tr>
+              <td>유한양행</td>
+              <td class="num">0.56</td><td>4.36</td><td>+10%</td><td>−352</td>
+              <td class="muted">마일스톤 일회성 왜곡</td>
+            </tr>
+            <tr>
+              <td>현대지에프홀딩스</td>
+              <td class="num">0.63</td><td>1.22</td><td>+1216%</td><td>+1,349</td>
+              <td class="muted">accel 미달</td>
+            </tr>
+            <tr class="row-watch">
+              <td>카카오</td>
+              <td class="num-watch">0.65</td><td class="num-buy">8.73 ★★</td><td>+498%</td><td>+1,786</td>
+              <td class="muted">관찰 — ratio 0.5 진입 시 1순위</td>
+            </tr>
+            <tr>
+              <td>NAVER</td>
+              <td class="num">0.68</td><td class="muted">0.89</td><td>+2281%</td><td>+11,277</td>
+              <td class="muted">성장 감속</td>
+            </tr>
+            <tr class="row-watch">
+              <td>한국카본</td>
+              <td class="num-watch">0.71</td><td class="num-buy">3.82 ★</td><td>−7098%</td><td>+2,533</td>
+              <td class="muted">관찰 — LNG 사이클 구조적</td>
+            </tr>
+            <tr>
+              <td>KT</td>
+              <td class="num">0.79</td><td>11.95</td><td>+32%</td><td>+17,846</td>
+              <td class="muted">희망퇴직 기저효과 왜곡</td>
+            </tr>
+            <tr>
+              <td>코스맥스</td>
+              <td class="num">0.81</td><td class="muted">0.99</td><td>+341%</td><td>−9,342</td>
+              <td class="muted">accel 없음</td>
+            </tr>
+            <tr class="row-watch">
+              <td>미스토홀딩스</td>
+              <td class="num-watch">0.86</td><td class="num-buy">23.9 ★★</td><td>+1365%</td><td>+5,183</td>
+              <td class="muted">관찰 — 기저효과 소멸 후 재확인</td>
+            </tr>
+            <tr>
+              <td>삼양식품</td>
+              <td class="num">0.90</td><td class="muted">0.80</td><td>+1857%</td><td>−20,189</td>
+              <td class="muted">성장 감속</td>
+            </tr>
+            <tr>
+              <td>코웨이</td>
+              <td class="num">0.90</td><td>1.48</td><td>−124%</td><td>−2,805</td>
+              <td class="muted">accel 미달</td>
+            </tr>
+            <tr>
+              <td>삼성에스디에스</td>
+              <td class="num">1.01</td><td>1.17</td><td>−912%</td><td>+10,906</td>
+              <td class="muted">ratio 경계</td>
+            </tr>
+            <tr>
+              <td>현대모비스</td>
+              <td class="num">1.13</td><td class="muted">0.83</td><td>−1053%</td><td>+32,332</td>
+              <td class="muted">성장 감속</td>
+            </tr>
+            <tr>
+              <td>KT&amp;G</td>
+              <td class="num">1.24</td><td>5.24</td><td>−409%</td><td>−799</td>
+              <td class="muted">accel 강하나 ratio 높음</td>
+            </tr>
+            <tr>
+              <td>더존비즈온</td>
+              <td class="num">1.26</td><td>2.62</td><td>+362%</td><td>+3,605</td>
+              <td class="muted">EQT 공개매수 진행 중</td>
+            </tr>
+            <tr>
+              <td>한화에어로스페이스</td>
+              <td class="num">1.37</td><td class="muted">0.95</td><td>+2754%</td><td>+40,492</td>
+              <td class="muted">성장 유지, ratio 높음</td>
+            </tr>
+            <tr>
+              <td>고려아연</td>
+              <td class="num">1.50</td><td class="num-sell">96.8</td><td>−442%</td><td>−77,396</td>
+              <td class="muted">이익 기저 극단 왜곡</td>
+            </tr>
+            <tr>
+              <td>한화</td>
+              <td class="num">1.82</td><td>6.57</td><td>+72%</td><td>+29,660</td>
+              <td class="muted">accel 강하나 ratio 너무 높음</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 매수 대상 상세 -->
+      <div class="sub-section-title">매수 대상 — 정성 분석</div>
+
+      <div class="detail-card">
+        <div class="detail-header">
+          <span class="detail-name">삼성바이오로직스</span>
+          <div class="detail-signals">
+            <span class="signal-chip buy">ratio 0.39</span>
+            <span class="signal-chip buy">accel 2.06</span>
+            <span class="signal-chip buy">1순위 조건 충족</span>
+          </div>
+        </div>
+        <div class="detail-section">
+          <p><strong>비즈니스</strong> — CMO/CDO 글로벌 1~2위. 삼성에피스(바이오시밀러) 포함 삼성그룹 바이오 전체 허브. 고정비 레버리지 구조 — 가동률 상승 시 이익 폭발.</p>
+          <p><strong>현황</strong> — 4공장 가동 안정화. 5공장 2025년 말 완공 목표, 6공장 건설 착수. 글로벌 빅파마 멀티플 CMO 계약 지속 확대. 영업이익 4년간 기하급수 성장(1y +2202%, 4y CAGR +1067%).</p>
+          <p><strong>투자 포인트</strong> — 19종목 중 유일하게 ratio &lt; 0.5 + accel ≥ 2 동시 충족(백테스트 최고 조합 mean +60.7%). 대형 밸류주 버킷에서도 동시 선정 — 두 전략에서 모두 1순위.</p>
+        </div>
+        <div class="detail-alert info">참고 — FCF 양호(+13,672). 백테스트상 ratio&lt;0.5 + FCF 양수 조합: mean +34.7%로 1순위 평균(+60.7%)보다 낮을 수 있음.</div>
+      </div>
+
+      <div class="detail-card">
+        <div class="detail-header">
+          <span class="detail-name">씨에스윈드</span>
+          <div class="detail-signals">
+            <span class="signal-chip buy">ratio 0.30 (최저)</span>
+            <span class="signal-chip sell">accel 0.78</span>
+            <span class="signal-chip">극단 저평가</span>
+          </div>
+        </div>
+        <div class="detail-section">
+          <p><strong>비즈니스</strong> — 풍력 타워 제조 글로벌 1위. 미국 콜로라도·베트남·말레이시아 등 다국적 생산거점. 육상풍력 타워가 매출 핵심. 해상풍력 하부구조물(덴마크 Bladt) 확대 중.</p>
+          <p><strong>저평가 원인 — 일시적</strong> — 트럼프 행정명령(2025.1) 해상풍력 전면 중단 → 미국 해상풍력 하부구조물 계약 1건 취소(2025.3 공시). 시장이 전체 사업을 해상풍력 리스크로 과잉 디스카운트. 실제 미국 매출 핵심은 <strong>육상풍력</strong>으로 정책 영향 제한적.</p>
+          <p><strong>현황</strong> — 2025년 어닝서프라이즈(컨센서스 +32.8% 상회). 수주잔고 역대 최고. 유럽 해상풍력 하부구조물 1조원 신규 수주(2027년~ 반영). 한국 해상풍력 특별법 추진 수혜 가능. 2026년 영업이익 3,338억원 전망(증권사 컨센서스).</p>
+        </div>
+        <div class="detail-alert risk">주의 — accel 0.78 (성장 가속 신호 없음). ratio 단독 베팅. 해상풍력 정책 불확실성 지속 시 ratio 추가 하락 가능(그러면 매수 기회 확대). 미국 법원 일부 프로젝트 재개 허용 → 반전 촉매 존재.</div>
+      </div>
+
+      <!-- 핵심 관찰 -->
+      <div class="sub-section-title">핵심 관찰 — ratio 0.5 진입 시 즉시 매수 검토</div>
+
+      <div class="detail-card">
+        <div class="detail-header">
+          <span class="detail-name">카카오</span>
+          <div class="detail-signals">
+            <span class="signal-chip watch">ratio 0.65</span>
+            <span class="signal-chip buy">accel 8.73</span>
+            <span class="signal-chip">ratio 0.5 진입 시 1순위</span>
+          </div>
+        </div>
+        <div class="detail-section">
+          <p><strong>성장 가속 원인</strong> — 2023년 영업이익 ~550억 저점(SM엔터 사법리스크 + 비용 과잉 확장) → 2025년 7,320억(+48% YoY). 구조조정·인력 감축으로 비용증가율을 매출증가율 이하로 억제한 <strong>비용 레버리지 효과</strong>가 주도.</p>
+          <p><strong>현황</strong> — 창업자 김범수 1심 무죄(2025.10) — 사법 리스크 사실상 해소. AI(카나나) 2026년 1분기 정식 출시 → 카카오톡 광고 단가 상승 기대. 단, 매출 성장률은 +3~4% 수준.</p>
+          <p><strong>핵심 관건</strong> — 가속의 실체가 매출 성장(구조적)인지 비용 절감(일시적)인지. 매출 성장률 재확인 필수.</p>
+        </div>
+        <div class="detail-alert warn">★ ratio 0.5 진입 시 최우선 관찰 → 매수 검토. 이익 성장 대부분이 비용 절감 레버리지임을 감안.</div>
+      </div>
+
+      <div class="detail-card">
+        <div class="detail-header">
+          <span class="detail-name">한국카본</span>
+          <div class="detail-signals">
+            <span class="signal-chip watch">ratio 0.71</span>
+            <span class="signal-chip buy">accel 3.82</span>
+            <span class="signal-chip">구조적 성장</span>
+          </div>
+        </div>
+        <div class="detail-section">
+          <p><strong>비즈니스</strong> — LNG 운반선 보냉재(트리플렉스 복합재) 사실상 독점 공급. LNG선 수주잔고 180척(2022) → 339척으로 2배 급증하며 이익 폭발. 탄소섬유 항공·풍력 블레이드 다변화 진행 중.</p>
+          <p><strong>성장 가속 원인</strong> — LNG선 선가 상승 + 수주잔고 급증 → 운영 레버리지로 영업이익률 8.9% → 16.5% 도약. 2027년까지 생산 capacity 수주잔고로 이미 채워진 상태 → 매출 가시성 최고.</p>
+          <p><strong>CAPEX −7098% 해석</strong> — 대규모 증설 완료 후 투자 소화 단계. 나쁜 신호가 아닌 인프라 완성 신호.</p>
+        </div>
+        <div class="detail-alert warn">★ ratio 0.5~0.6대 진입 시 매수 검토. 성장이 LNG 수주 사이클 구조적 개선 기반.</div>
+      </div>
+
+      <div class="detail-card">
+        <div class="detail-header">
+          <span class="detail-name">미스토홀딩스 (구 휠라홀딩스)</span>
+          <div class="detail-signals">
+            <span class="signal-chip watch">ratio 0.86</span>
+            <span class="signal-chip buy">accel 23.9</span>
+            <span class="signal-chip">기저효과 확인 필요</span>
+          </div>
+        </div>
+        <div class="detail-section">
+          <p><strong>비즈니스</strong> — ①아쿠쉬네트(Acushnet): 타이틀리스트(골프공 프로투어 점유율 75%), FootJoy — 전체 매출의 80%. ②FILA 브랜드: 스포츠 패션. 2025년 4월 사명 변경.</p>
+          <p><strong>성장 가속 원인</strong> — FILA 부문 적자 → 2025년 흑자전환(기저효과 극단). 아쿠쉬네트 Pro V1 신제품 호조 + 본업 성장(2025년 영업이익 4,748억, +31.6%). 2025~2027년 최대 5,000억원 주주환원(자사주 소각 2,682억 포함) 정책.</p>
+          <p><strong>핵심 관건</strong> — accel 23.9는 FILA 흑자전환 기저효과 주도. 구조적 성장은 아쿠쉬네트가 담당. 미국 관세 리스크(아쿠쉬네트 미국 매출 비중 높음) 주요 변수.</p>
+        </div>
+        <div class="detail-alert warn">★ ratio 0.7대 진입 시 검토. 기저효과 소멸 후 accel 유지 여부 재확인 필수.</div>
+      </div>
+
+      <!-- 유의 관찰 -->
+      <div class="sub-section-title">유의 관찰 — 신호 왜곡 또는 투자 실효성 없음</div>
+
+      <div class="caution-box">
+        <div class="caution-title">유한양행 — ratio 0.56 · 마일스톤 일회성 왜곡</div>
+        렉라자+리브리반트 병용요법 유럽·중국 출시 마일스톤 집중 수취($4,500만 + $3,000만)로 ratio 2.88 → 0.56 급락. 마일스톤 제거 시 실제 이익 기준 per_ratio는 현재 0.56보다 훨씬 높을 가능성. 로열티는 구조적으로 증가 중이나 마일스톤만큼 크지 않음.
+      </div>
+
+      <div class="caution-box">
+        <div class="caution-title">KT — accel 11.95 · 희망퇴직 기저효과 왜곡</div>
+        2024년 4분기 대규모 희망퇴직(~1조원)으로 이익 저점 형성. 2025년 회복으로 accel이 극단적으로 높게 나타남. 구조적 성장 가속이 아닌 <strong>일회성 기저효과</strong>임을 감안해 판단.
+      </div>
+
+      <div class="caution-box danger">
+        <div class="caution-title">고려아연 — accel 96.8 · 이익 기저 극단 왜곡</div>
+        accel 96.8은 이익 기저가 극단적으로 낮았던 구간 대비 회복 수치. 실질 성장 신호가 아님. FCF −77,396으로 현금 창출 심각하게 부진. ratio 1.50으로 매수 기준 밖.
+      </div>
+
+      <div class="caution-box danger">
+        <div class="caution-title">더존비즈온 — EQT 공개매수 진행 중 · 투자 의미 없음</div>
+        사모펀드 EQT의 공개매수 및 상장폐지 절차 진행 중. ratio 1.26, accel 2.62로 신호상으로는 흥미롭지만 투자 실효성 없음. 완전히 제외.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── 중소형 성장주 ── -->
+  <div class="accordion" id="acc-smid">
+    <button class="accordion-header" onclick="toggle('acc-smid')">
+      <div class="acc-left">
+        <span class="acc-tag tag-smid">중소형</span>
+        <div>
+          <div class="acc-title">중소형 성장주</div>
+          <div class="acc-sub">52종목 · ratio&lt;0.5 통과 13개 · 대형 우선</div>
+        </div>
+      </div>
+      <span class="acc-arrow">▼</span>
+    </button>
+    <div class="accordion-body">
+
+      <div class="strategy-box">
+        <strong>전략</strong> — per_ratio &lt; 0.5 단독. <strong>성장 가속 신호는 중소형에서 역효과.</strong>
+        (ratio&lt;0.5 단독 mean +18.2% → accel 추가 시 +8.8%로 하락)
+        중소형 이익의 급가속은 구조적 성장이 아닌 기저효과·일회성이 많기 때문.
+        <strong>대형 성장주 → 대형 밸류주 → 중소형 성장주 순서로 자금 집행.</strong>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-label">ratio &lt; 0.5 (중소형)</div>
+          <div class="stat-val">+18.2%</div>
+          <div class="stat-sub">12m mean (n=271)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">대형 성장주 비교</div>
+          <div class="stat-val num-watch">+37.8%</div>
+          <div class="stat-sub">대형 ratio&lt;0.5 mean</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">accel 추가 시</div>
+          <div class="stat-val num-sell">+8.8%</div>
+          <div class="stat-sub">역효과 (대형은 +60.7%)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">매수 가능 종목</div>
+          <div class="stat-val">13개</div>
+          <div class="stat-sub">2025Q4 ratio&lt;0.5</div>
+        </div>
+      </div>
+
+      <div class="sub-section-title">매수 가능 종목 전체 — ratio &lt; 0.5 (13종목)</div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>종목</th><th>ratio</th><th>ni_accel</th><th>fcf_ps</th><th>참고</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>삼호개발</td><td class="num-buy">0.08</td><td class="num-watch">18.4</td><td>+1,070</td><td class="muted">극단 저평가, 기저효과 가능성 높음</td></tr>
+            <tr><td>시공테크</td><td class="num-buy">0.13</td><td>0.0</td><td>+592</td><td class="muted">ni 성장 정체</td></tr>
+            <tr><td>넥센</td><td class="num-buy">0.14</td><td>0.2</td><td>+2,351</td><td class="muted">FCF 양호</td></tr>
+            <tr><td>아바코</td><td class="num-buy">0.21</td><td>0.4</td><td>+312</td><td class="muted">—</td></tr>
+            <tr><td>세명전기</td><td class="num-buy">0.21</td><td>2.1</td><td>+781</td><td class="muted">accel 유지 구간 (1~2)</td></tr>
+            <tr><td>서울평가정보</td><td class="num-buy">0.29</td><td class="num-watch">23.7</td><td>+203</td><td class="muted">ni_accel 극단, 기저효과 주의</td></tr>
+            <tr><td>엠씨넥스</td><td class="num-buy">0.31</td><td>4.4</td><td>+4,757</td><td class="muted">FCF 우수 — 상대적 선호</td></tr>
+            <tr><td>KTcs</td><td class="num-buy">0.33</td><td class="num-watch">28.9</td><td>+1,071</td><td class="muted">급가속, 기저효과 주의</td></tr>
+            <tr><td>풍국주정</td><td class="num-buy">0.36</td><td>2.7</td><td>+114</td><td class="muted">—</td></tr>
+            <tr><td>푸드웰</td><td class="num-buy">0.43</td><td>5.2</td><td>+843</td><td class="muted">—</td></tr>
+            <tr><td>삼일기업공사</td><td class="num-buy">0.45</td><td>0.7</td><td>+1,273</td><td class="muted">—</td></tr>
+            <tr><td>토탈소프트</td><td class="num-buy">0.46</td><td>1.3</td><td>+1,232</td><td class="muted">accel 유지 구간 (1~2)</td></tr>
+            <tr><td>진로발효</td><td class="num-buy">0.50</td><td>2.6</td><td>+2,412</td><td class="muted">경계선 · FCF 양호</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note watch-note">
+        급가속(5+) 종목(삼호개발 111, KTcs 28.9, 서울평가정보 23.7)은 기저효과 의심 — 우선순위 낮춤.<br>
+        FCF 양수 + accel 유지(1~2) 구간(세명전기·토탈소프트) 상대적 선호. 단, 대형 버킷에서 매수 기회가 있으면 대형 우선.
+      </div>
+
+    </div>
+  </div>
+
+</section>
+</main>
+
+<footer>
+  <p>데이터 기준: 2025Q4 | 경기순환 34 · 대형밸류 57 · 대형성장 19 · 중소형성장 52</p>
+  <p>백테스트 기간: 2016Q3–2025Q4 | <a href="investment_strategy.html" style="color:var(--accent);">선정 전략 방법론 문서</a></p>
+  <p>본 리포트는 투자 참고 자료이며 투자 권유가 아닙니다.</p>
+</footer>
+
+<script>
+  function toggle(id) {
+    const el = document.getElementById(id);
+    el.classList.toggle('open');
+  }
+</script>
+
+</body>
+</html>
