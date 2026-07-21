@@ -1,10 +1,10 @@
 """
 §3.2 대형 밸류주 1차 스모크: 시총 상위 200 × ttm_valuation 만 사용.
-  분기 이력이 min-q(기본 28)개 이상이고, 시계열 끝에서 min-q개 분기 각각 ni_parent_ps > 0.
+  분기 이력이 min-q(기본 16)개 이상이고, 시계열 끝에서 min-q개 분기 각각 ni_parent_ps > 0.
   (동일 anchor_term=as_of, 종목별 최신 computed_at 배치 안에서 ttm_end_term ≤ as_of 만 사용.)
 
   .venv/bin/python scripts/analysis/screen_large_asset_mcap200.py
-  .venv/bin/python scripts/analysis/screen_large_asset_mcap200.py --as-of 2025Q4 --list-pass
+  .venv/bin/python scripts/analysis/screen_large_asset_mcap200.py --as-of 2026Q1 --list-pass
 """
 
 from __future__ import annotations
@@ -19,6 +19,8 @@ import pandas as pd
 _ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
+
+from scripts.config import PROFIT_STREAK_MIN_Q
 
 MCAP_CSV = _ROOT / "stock_data" / "mcap_top_200.csv"
 VAL_DB = _ROOT / "data" / "analytics" / "ttm_valuation.db"
@@ -96,7 +98,7 @@ def _last_n_quarters_all_ni_parent_positive(
 def large_value_passing_names(
     *,
     as_of: str | None = None,
-    min_q: int = 28,
+    min_q: int = PROFIT_STREAK_MIN_Q,
     mcap_csv: Path = MCAP_CSV,
     val_db: Path = VAL_DB,
 ) -> tuple[str, list[str]]:
@@ -137,8 +139,8 @@ def main() -> int:
     p.add_argument(
         "--min-q",
         type=int,
-        default=28,
-        help="시계열 끝에서 N개 분기 각각 ni_parent_ps > 0; N 기본 28",
+        default=PROFIT_STREAK_MIN_Q,
+        help=f"시계열 끝에서 N개 분기 각각 ni_parent_ps > 0; N 기본 {PROFIT_STREAK_MIN_Q}",
     )
     p.add_argument("--list-pass", action="store_true")
     args = p.parse_args()

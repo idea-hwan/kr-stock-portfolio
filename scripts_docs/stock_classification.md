@@ -10,6 +10,8 @@
 
 코스피200 원천 리스트 대신, **`stock_listing.csv` 시총(Marcap) 상위 200**으로 대형 유니버스를 둔다. (우선주·스팩·리츠·펀드·신탁·SPAC·KONEX·KOSDAQ GLOBAL 제외 규칙은 `scripts/stock_db.py` 의 `listing_names_ordered_by_marcap` 과 동일.)
 
+**금융업 제외**: 은행·보험·증권·카드·캐피탈·투자·금융지주 종목은 대형주 유니버스에서 뺀다(`financial_sector_exclusion_mask`, 기본 활성 — us-stock-portfolio의 `EXCLUDED_SECTORS={"Financial Services","Real Estate"}` GICS 섹터 제외와 동일 취지: 금융업은 레버리지가 사업모델이라 일반 이익지표·성장률이 안 맞음). 이 프로젝트엔 업종 코드 자체가 없어 종목명 키워드(`FINANCIAL_SECTOR_NAME_KEYWORDS`) + 예외 목록(`FINANCIAL_SECTOR_NAME_EXCEPTIONS`: 신한지주·코리안리처럼 키워드로 안 잡히는 고유명사)로 판별한다. `stock_listing.csv` 전체(~2,700종목) 대조 검증 완료. `listing_instrument_exclusion_mask`(증권 종류 제외)와는 별개 항목 — DART 원천 데이터 수집엔 영향 없고 `mcap_top_n_listing_rows`/`listing_names_ordered_by_marcap`(대형주 유니버스 산출)에서만 적용.
+
 | 조건 | 분류 |
 |------|------|
 | `stock_data/mcap_top_200.csv` 에 포함 | 대형주 |
@@ -33,7 +35,7 @@
 
 ### 1.3 공통 스냅샷 CSV (버킷별, 동일 포맷)
 
-네 버킷 모두 **동일한 열 구조**로, 종목×분기마다 한 행씩 쌓는다. **`stock_classification.db` 는 쓰지 않는다.**
+세 버킷 모두 **동일한 열 구조**로, 종목×분기마다 한 행씩 쌓는다. **`stock_classification.db` 는 쓰지 않는다.**
 
 | 기본 출력 경로 | 버킷 |
 |----------------|------|
@@ -67,7 +69,7 @@
 
 ### 3.2 대형 밸류주 (Large value)
 
-**시총 상위 200**(`mcap_top_200.csv`, §1.1) 종목만 대상으로 한다. **분기 데이터가 28개 이상** 있어야 하고, **최근 28개 분기는 연속으로** 순이익(지배순이익 주당, DB 컬럼 `ni_parent_ps`)이 **모두 양수**여야 한다. `ttm_valuation.db` 만 쓴다. 통과 종목만 §1.3 지표를 `data/analytics/large_value_stock.csv`에 저장한다. (`large_value_passing_names`)
+**시총 상위 200**(`mcap_top_200.csv`, §1.1) 종목만 대상으로 한다. **분기 데이터가 16개(4년) 이상** 있어야 하고, **최근 16개 분기는 연속으로** 순이익(지배순이익 주당, DB 컬럼 `ni_parent_ps`)이 **모두 양수**여야 한다. `ttm_valuation.db` 만 쓴다. 통과 종목만 §1.3 지표를 `data/analytics/large_value_stock.csv`에 저장한다. (`large_value_passing_names`)
 
 ```bash
 .venv/bin/python scripts/snapshot_export/export_bucket_stock_csv.py --bucket large_value
@@ -77,19 +79,9 @@
 
 ### 3.3 대형 성장주 (Large growth)
 
-**시총 상위 200**(`mcap_top_200.csv`, §1.1)만 본다.
+**시총 상위 200**(`mcap_top_200.csv`, §1.1)만 본다. §3.2(대형 밸류)와 완전히 대칭 구조 — 순이익 대신 영업이익만 다르다: **분기 데이터가 16개(4년) 이상** 있어야 하고, **최근 16개 분기는 연속으로** 영업이익 주당(`op_ps`)이 **모두 양수**여야 한다. `ttm_valuation.db` 만 쓴다(`ttm_metric_growth.db`는 버킷 판정에 안 씀). 통과 종목만 §1.3 지표를 `data/analytics/large_growth_stock.csv`에 저장한다. (`large_growth_passing_names`)
 
-1. **분기 28개 이상** — `ttm_metric_growth.db` 의 `ttm_metric_growth_series`에서 **행 수가 가장 많은 `batch_label`** 하나만 쓰고, 그 배치에서 `ttm_end_term ≤ as_of` 인 **서로 다른 분기 수 ≥ 28**.
-
-2. **최근 28분기 연속 영업이익 양수** — `ttm_valuation.db` 의 `ttm_valuation_series`에서 §3.2(대형 밸류)와 같이 `anchor_term = as_of`·종목별 최신 `computed_at` 배치를 고른 뒤, **가장 최근 28개 분기**마다 **영업이익 주당 `op_ps` > 0**.
-
-3. **영업이익 성장(기하 누적 %)** — 같은 growth 배치의 **`as_of` 행**에서 `op_geom_1y_mcum`, `op_geom_2y_mcum`, `op_geom_4y_mcum` 이 모두 비결측이고 아래를 **모두** 만족:  
-   - `1y_% > 0`  
-   - `2y_% > 0`  
-   - `4y_% > 0`  
-   - `2y_% > 4y_%`  
-
-위 1~3을 만족하면 §1.3 지표를 `data/analytics/large_growth_stock.csv`에 저장한다. (`large_growth_passing_names`)
+> **성장가속(2y CAGR > 4y CAGR) 조건은 버킷 분류에 쓰지 않는다.** us-stock-portfolio의 현재 `classify_stocks.py`/`pit_buckets16`과 동일한 구조: growth·value 모두 순수 흑자 스트릭 단독 조건, 서로 배타적이지 않음(둘 다 통과하는 종목이 있을 수 있음). 성장가속은 버킷 안에서 **매수신호**를 고를 때만 쓴다 — `docs/large_growth_selection_strategy.md` Signal B.
 
 ```bash
 .venv/bin/python scripts/snapshot_export/export_bucket_stock_csv.py --bucket large_growth
@@ -122,6 +114,21 @@
 
 선행 DB·파일: `ttm_valuation.db`, `ttm_metric_growth.db`, `mcap_top_200.csv`, `stock_listing.csv`, 경기순환 수동 유니버스 `cyclical_manual_universe.txt`(§3.1).
 
+### 4.3 PIT 생존편향 교정 (시뮬레이션·재검증용)
+
+§3.2/§3.3의 `large_value_stock.csv`/`large_growth_stock.csv`는 **오늘 시점** 기준으로 딱 한 번 판정한 뒤 통과 종목의 전체 히스토리를 담는다 — 과거엔 조건을 만족했지만 지금은 깨진 종목의 이력이 통째로 빠지는 생존편향이 있다(us-stock-portfolio가 `classify_stocks.py`에서 겪고 `pit_buckets16`으로 고친 것과 동일한 문제).
+
+이를 위한 별도 산출물(§3.x 버킷 CSV와는 독립적으로 갱신):
+
+| 파일 | 내용 | 생성 |
+|------|------|------|
+| `data/analytics/pit_buckets.db` (`pit_buckets16` 테이블) | `(company, ttm_end_term)`마다 그 시점까지의 데이터만으로 "최근 16분기 연속 흑자"를 롤링 재판정한 `growth_pit16`/`value_pit16` 플래그. 미래 데이터 유입 없음. | `scripts/analysis/build_pit_buckets.py` |
+| `data/analytics/mcap200_factor_panel.csv` | `mcap_top_200.csv` 200종목 **전체**(오늘 버킷 통과 여부 무관)의 전체 히스토리 패널 — §3.x CSV가 "오늘 통과 종목만" 담는 것과 달리 전종목을 무조건 포함. `pit_buckets.db`와 조인해야 특정 시점의 growth/value 이벤트를 가릴 수 있다. | `scripts/analysis/build_mcap200_factor_panel.py` |
+
+사용 예(`scripts/simulate/signal_common.py`의 `load_pit_eligible_panel`): `mcap200_factor_panel.csv ⋈ pit_buckets16, growth_pit16==1` → 생존편향 없는 growth 이벤트 스트림. `scripts/simulate/verify_value_signal.py`가 naive(§3.x CSV) 결과와 PIT 교정 결과를 나란히 출력한다. growth 버킷은 `scripts/simulate/growth_factor_grid.py` — 성장(rev/op/ni)·투자(capex)·저평가(P/NI·P/OP·P/rev, ni우선폴백 포함) 3축 단일→2팩터→3팩터 조합을 KOSPI200(KS200, `signal_common.add_benchmark_alpha`) 대비 alpha 기준으로 탐색한다(us-stock-portfolio `scripts/archive/simulate_growth_factors.py` 구조 포팅).
+
+**받아들이는 한계** (US도 동일하게 "포기"한 부분, 이번에 안 고침): `mcap_top_200.csv`가 오늘 시점 스냅샷 하나뿐이라 과거 시총 순위 자체는 복원 안 됨. `ttm_valuation.db`도 매번 오늘 시점 재무(정정공시 반영)로 전체 히스토리를 재계산하는 구조라 상장폐지 종목은 원천 데이터가 없어 어떤 쿼리로도 복원 불가.
+
 ---
 
 ## 5. 변경 이력
@@ -150,3 +157,6 @@
 | 2026-04 | §3.4: §3.3과 동일 구조·**ni_parent_ps 28분기** + **`ni_geom_*`** 부등식·비대형 유니버스; `screen_smid_growth.py` |
 | 2026-04 | §3.2 명칭·출력: **대형 밸류주** — `large_value_stock.csv`, `--bucket large_value`, `large_value_passing_names` |
 | 2026-07 | §3.4(중소형 성장주) 제거 — US 프로젝트와 동일한 경기순환/대형밸류/대형성장 3버킷 체계로 정리. 원문은 `scripts_docs/archive/smid_growth_classification.md`, 스크립트는 `scripts/archive/screen_smid_growth.py`로 이동 |
+| 2026-07 | §3.2/§3.3 연속 흑자 하한 28→16분기, us-stock-portfolio의 `MIN_Q` 완화(32→16)와 동일 이유(검증 시작점·표본 크기). §3.3 성장가속(2y>4y) 조건을 버킷 분류에서 제거 — 매수신호(Signal B) 단계로 이동, growth/value 스크리닝 구조 대칭화(`screen_large_growth_mcap200.py` 재작성). §4.3 PIT 생존편향 교정(`pit_buckets.db`, `mcap200_factor_panel.csv`) 신설 |
+| 2026-07 | §4.3: growth 버킷 시뮬을 `verify_growth_signal.py`(구 per_ratio+영업이익가속 단일조건, `large_growth_selection_strategy.md` run_id=1 재현)에서 `growth_factor_grid.py`로 교체 — us-stock-portfolio의 탐색 그리드 세대(`scripts/archive/simulate_growth_factors.py`)와 동일하게 성장(rev/op/ni)·투자(capex)·저평가(P/NI·P/OP·P/rev, ni우선폴백 포함) 3축 단일→2팩터→3팩터 조합 탐색으로 전환. 수익률 기준도 원시 수익률 대신 KOSPI200(KS200) 대비 alpha로 변경(`signal_common.add_benchmark_alpha` 신설) |
+| 2026-07 | §1.1: 대형주 유니버스에 금융업(은행·보험·증권·카드·캐피탈·투자·금융지주) 종목명 키워드 제외 추가(`financial_sector_exclusion_mask`, 기본 활성) — us-stock-portfolio `EXCLUDED_SECTORS`(GICS 섹터 기반)와 동일 취지를 종목명 키워드로 재현. `mcap_top_200.csv`에서 21종목 제외, 201~221위 21종목 신규 진입. `pit_buckets.db`·`mcap200_factor_panel.csv` 재생성(제외 전 growth/value PIT 통과 이력엔 금융주가 원래 없었음 — op_ps 보고방식 차이로 16분기 흑자 스트릭 자체를 통과 못 함). 이어서 리츠와 성격이 같은 상장 인프라펀드(맥쿼리인프라·KB발해인프라)도 `FINANCIAL_SECTOR_NAME_EXCEPTIONS`에 추가 |

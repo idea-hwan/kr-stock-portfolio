@@ -18,6 +18,27 @@ STOCKS_DB_DIR = BASE_DIR / "data" / "stocks"
 # `stock_listing.csv` 의 Market — 일반 파이프라인에서 제외(KONEX·코스닥글로벌 등).
 LISTING_EXCLUDED_MARKETS: frozenset[str] = frozenset({"KONEX", "KOSDAQ GLOBAL"})
 
+# 금융업(은행·보험·증권·카드·캐피탈·투자·금융지주) 종목명 키워드 — us-stock-portfolio의
+# EXCLUDED_SECTORS={"Financial Services","Real Estate"}(GICS 섹터)와 동일 취지.
+# 이 프로젝트엔 업종 코드 자체가 없어 종목명 키워드로 판별한다. `stock_listing.csv` 전체
+# (~2,700종목)에서 각 키워드 매칭 결과를 직접 대조 확인 완료(오탐 없음, 2026-07).
+# 목록이 바뀌면 재검증할 것.
+FINANCIAL_SECTOR_NAME_KEYWORDS: frozenset[str] = frozenset(
+    {
+        "은행", "뱅크", "생명", "화재", "해상", "보험", "증권", "카드", "캐피탈", "투자",
+        "금융지주", "금융",
+    }
+)
+# 키워드로 못 잡는 예외(고유명사형 금융사명·펀드형 투자기구) — "신한지주"는 "금융"/"지주(단독)"
+# 어느 쪽도 안 걸림("지주" 단독 매칭은 롯데지주·세아베스틸지주 같은 비금융 지주사를 오탐하므로
+# 안 씀). "코리안리"(재보험사)는 이름에 금융 관련 키워드가 전혀 없음. "맥쿼리인프라"·"KB발해인프라"는
+# 리츠와 같은 성격의 상장 인프라펀드(운용보수·배당 구조가 일반 기업과 다름)이지만 "리츠" 키워드가
+# 없음 — "인프라"를 키워드로 넣으면 바이오인프라·바이오인프라생명과학(비금융 바이오기업) 오탐이라
+# 여기 예외로만 추가.
+FINANCIAL_SECTOR_NAME_EXCEPTIONS: frozenset[str] = frozenset(
+    {"신한지주", "코리안리", "맥쿼리인프라", "KB발해인프라"}
+)
+
 
 def _normalize_krx_stock_code(code: object) -> str:
     """OpenDartReader find_corp_code: 6자리 종목코드. CSV가 86790 형태일 때 086790 으로 맞춤."""
@@ -72,6 +93,23 @@ def listing_instrument_exclusion_mask(
     return ex
 
 
+def financial_sector_exclusion_mask(df: pd.DataFrame) -> pd.Series:
+    """행 단위 True = 금융업(은행·보험·증권·카드·금융지주) 종목명 — `Name` 필수.
+
+    US 레퍼런스의 섹터 기반 제외(Financial Services·Real Estate)를 종목명 키워드로 재현.
+    이익구조(레버리지가 사업모델)가 일반 기업과 달라 성장/밸류 분석 유니버스에서 뺀다.
+    `listing_instrument_exclusion_mask`(증권 종류 제외)와는 별개 — DART 원천 데이터 수집엔
+    영향 없고, 대형주 분석 유니버스(`mcap_top_n_listing_rows`/`listing_names_ordered_by_marcap`)
+    에서만 적용한다.
+    """
+    nm = df["Name"].astype(str).str.strip()
+    ex = pd.Series(False, index=df.index)
+    for kw in FINANCIAL_SECTOR_NAME_KEYWORDS:
+        ex |= nm.str.contains(kw, na=False)
+    ex |= nm.isin(FINANCIAL_SECTOR_NAME_EXCEPTIONS)
+    return ex
+
+
 def listing_pipeline_allowed_names() -> frozenset[str]:
     """
     DART 적재·TTM/분석 파이프라인 공통 허용 종목명 집합.
@@ -111,12 +149,15 @@ def listing_names_ordered_by_marcap(
     exclude_fund_trust: bool = True,
     exclude_spac_dept: bool = True,
     exclude_markets: bool = True,
+    exclude_financial_sector: bool = True,
 ) -> list[str]:
     """
     `stock_listing.csv` 를 시총(Marcap) 내림차순으로 본 Name 목록.
     동일 Name 은 첫 행(시총 큰 쪽)만 유지.
 
     기본: 우선주·이름 스팩·리츠·펀드·신탁·Dept SPAC·`LISTING_EXCLUDED_MARKETS` 행 제외.
+    `exclude_financial_sector`(기본 True): 은행·보험·증권·카드·금융지주 종목명 제외
+    (`financial_sector_exclusion_mask`) — us-stock-portfolio의 EXCLUDED_SECTORS 상응.
     """
     df = load_listing_dataframe()
     if "Marcap" not in df.columns:
@@ -138,6 +179,8 @@ def listing_names_ordered_by_marcap(
         check_fund_trust=exclude_fund_trust,
         check_excluded_markets=exclude_markets,
     )
+    if exclude_financial_sector:
+        ex |= financial_sector_exclusion_mask(tmp)
     work = work.loc[~ex]
     work = work.assign(Marcap=pd.to_numeric(work["Marcap"], errors="coerce"))
     work = work.sort_values("Marcap", ascending=False, na_position="last")
@@ -159,10 +202,12 @@ def company_names_top_n_by_marcap(n: int) -> frozenset[str]:
     return frozenset(ordered[:n])
 
 
-def mcap_top_n_listing_rows(n: int) -> pd.DataFrame:
+def mcap_top_n_listing_rows(n: int, *, exclude_financial_sector: bool = True) -> pd.DataFrame:
     """
     시총(Marcap) 내림차순 상위 n행. `listing_names_ordered_by_marcap` 과 동일 필터·Name 중복 시 첫 행만 유지.
     컬럼: rank(1..n), Code, Name, Marcap, (있으면) Market
+
+    `exclude_financial_sector`(기본 True): 은행·보험·증권·카드·금융지주 종목명 제외.
     """
     if n < 1:
         raise ValueError("n must be >= 1")
@@ -176,6 +221,8 @@ def mcap_top_n_listing_rows(n: int) -> pd.DataFrame:
     work = work.loc[ok]
     tmp = work.assign(Name=work["_nm"])
     ex = listing_instrument_exclusion_mask(tmp)
+    if exclude_financial_sector:
+        ex |= financial_sector_exclusion_mask(tmp)
     work = work.loc[~ex]
     work = work.assign(Marcap=pd.to_numeric(work["Marcap"], errors="coerce"))
     work = work.sort_values("Marcap", ascending=False, na_position="last")

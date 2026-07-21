@@ -38,3 +38,9 @@ def get_dart_api_key() -> str:
         )
     return key
 
+
+# 대형성장주/대형밸류주 판정 — 연속 흑자 최소 분기 수(4년).
+# us-stock-portfolio의 MIN_Q와 동일 원칙: 원래 28분기(7년)였으나, 32분기를 쓰던 US가
+# 검증 가능 시작점이 너무 늦어지고 표본이 작아져 16분기로 완화한 것과 같은 이유로 맞춤.
+PROFIT_STREAK_MIN_Q = 16
+

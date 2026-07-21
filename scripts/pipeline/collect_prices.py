@@ -1,5 +1,5 @@
 """
-`mcap_top_200` + 경기순환 수동 유니버스 + 벤치마크(KODEX 200 ETF) 종목의 일별 종가를
+`mcap_top_200` + 경기순환 수동 유니버스 + 벤치마크(KOSPI200 지수) 종목의 일별 종가를
 FinanceDataReader 로 받아 로컬에 영구 저장한다 (`us-stock-portfolio/scripts/collect_prices.py` 상응).
 
 `series_per.py`/`populate_ttm_valuation.py` 는 건드리지 않는다 — per_ratio 계산은
@@ -30,8 +30,9 @@ if str(_ROOT) not in sys.path:
 from scripts.manual_lists import load_cyclical_manual_universe
 
 START_DATE = "2015-01-01"
-BENCHMARK_CODE = "069500"  # KODEX 200 ETF — US 레퍼런스의 SPY 상응. 유니버스에 명시적으로 포함해
-                            # "벤치마크가 유니버스 밖이라 갱신에서 누락된다" 결함을 처음부터 피한다.
+BENCHMARK_CODE = "KS200"  # KOSPI200 지수(ETF 아님, FDR 지수 코드) — US 레퍼런스의 SPY 상응.
+                           # 유니버스에 명시적으로 포함해 "벤치마크가 유니버스 밖이라 갱신에서
+                           # 누락된다" 결함을 처음부터 피한다.
 SLEEP_SEC = 0.3
 
 MCAP_TOP200_CSV = _ROOT / "stock_data" / "mcap_top_200.csv"

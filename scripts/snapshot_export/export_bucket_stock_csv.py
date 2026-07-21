@@ -32,6 +32,7 @@ from scripts.snapshot_export.stock_snapshot_paths import (
     DEFAULT_GROWTH_DB,
 )
 from scripts.analysis.ttm_valuation_df import DEFAULT_DB
+from scripts.config import PROFIT_STREAK_MIN_Q
 
 
 def _resolve_names(
@@ -67,8 +68,8 @@ def main() -> int:
     p.add_argument(
         "--min-q",
         type=int,
-        default=28,
-        help="성장·밸류 스크린의 DISTINCT 분기 하한 (기본 28)",
+        default=PROFIT_STREAK_MIN_Q,
+        help=f"성장·밸류 스크린의 연속 흑자 분기 하한 (기본 {PROFIT_STREAK_MIN_Q})",
     )
     p.add_argument(
         "--cyclical-manual",
