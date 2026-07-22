@@ -173,10 +173,8 @@
   .stock-badge {
     font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 4px;
   }
-  .stock-badge.cyclical { background: #1a2a1a; color: var(--buy); }
   .stock-badge.value    { background: var(--purple-bg); color: var(--purple); }
   .stock-badge.growth   { background: var(--cyan-bg);   color: var(--cyan);   }
-  .stock-badge.smid     { background: var(--amber-bg);  color: var(--amber);  }
 
   .stock-info { font-size: 11px; color: var(--muted); text-align: right; }
 
@@ -189,18 +187,14 @@
   .method-card {
     border-radius: 8px; padding: 14px 16px; border: 1px solid;
   }
-  .method-card.cyclical { background: #0d1a0d; border-color: #1e4020; }
   .method-card.value    { background: var(--purple-bg); border-color: #2a1a5e; }
   .method-card.growth   { background: var(--cyan-bg);   border-color: #0c3048; }
-  .method-card.smid     { background: var(--amber-bg);  border-color: #3d2e0a; }
 
   .method-tag {
     font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 6px;
   }
-  .method-card.cyclical .method-tag { color: var(--buy);    }
   .method-card.value    .method-tag { color: var(--purple); }
   .method-card.growth   .method-tag { color: var(--cyan);   }
-  .method-card.smid     .method-tag { color: var(--amber);  }
 
   .method-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
   .method-signal { font-size: 11px; color: var(--muted); line-height: 1.6; }
@@ -221,13 +215,13 @@
   <div class="hero-label">Stock Portfolio</div>
   <h1>한국 주식<br>체계적 포트폴리오 리포트</h1>
   <p>
-    162종목을 4개 버킷으로 분류하고 정량 신호와 정성 분석을 통합해
+    76종목을 2개 버킷으로 분류하고 정량 신호와 정성 분석을 통합해
     분기마다 매수·홀딩·매도 판단을 제공한다.
   </p>
   <div class="hero-meta">
     <span>백테스트 2016Q3–2026Q1</span>
     <span>최신 리포트 2026Q1</span>
-    <span>122종목 스크리닝</span>
+    <span>76종목 스크리닝</span>
   </div>
 </div>
 
@@ -241,13 +235,12 @@
       <div class="doc-card-eyebrow">Latest · 2026Q1</div>
       <div class="doc-card-title">분기 리포트</div>
       <div class="doc-card-desc">
-        122종목 스크리닝 결과. 즉시매수 5종목, 조건부 6종목, 홀딩 4종목, 매도검토 7종목. 각 종목별 투자 논리와 리스크 분석.
+        76종목 스크리닝 결과. 즉시매수 3종목, 조건부 4종목, 매도검토 16종목. 각 종목별 투자 논리와 리스크 분석.
       </div>
       <div class="doc-card-link">리포트 보기 →</div>
       <div class="doc-card-tags">
-        <span class="doc-tag green">매수 5</span>
-        <span class="doc-tag yellow">조건부 6</span>
-        <span class="doc-tag blue">홀딩 4</span>
+        <span class="doc-tag green">매수 3</span>
+        <span class="doc-tag yellow">조건부 4</span>
       </div>
     </a>
 
@@ -255,14 +248,12 @@
       <div class="doc-card-eyebrow">방법론 · v1</div>
       <div class="doc-card-title">선정 전략 문서</div>
       <div class="doc-card-desc">
-        4개 버킷별 신호 체계, 백테스트 근거, 매수·홀딩·매도 기준. 리포트를 처음 보기 전에 읽기를 권장한다.
+        2개 버킷별 신호 체계, 백테스트 근거, 매수·홀딩·매도 기준. 리포트를 처음 보기 전에 읽기를 권장한다.
       </div>
       <div class="doc-card-link">전략 보기 →</div>
       <div class="doc-card-tags">
-        <span class="doc-tag green">경기순환</span>
         <span class="doc-tag purple">밸류</span>
         <span class="doc-tag cyan">성장</span>
-        <span class="doc-tag yellow">중소형</span>
       </div>
     </a>
   </div>
@@ -273,48 +264,29 @@
   <div class="stat-row">
     <div class="stat-box">
       <div class="stat-label">스크리닝</div>
-      <div class="stat-val blue">122</div>
+      <div class="stat-val blue">76</div>
       <div class="stat-sub">종목 분석</div>
     </div>
     <div class="stat-box">
       <div class="stat-label">즉시 매수</div>
-      <div class="stat-val green">5</div>
+      <div class="stat-val green">3</div>
       <div class="stat-sub">종목</div>
     </div>
     <div class="stat-box">
       <div class="stat-label">조건부 매수</div>
-      <div class="stat-val yellow">6</div>
-      <div class="stat-sub">종목</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-label">홀딩</div>
-      <div class="stat-val blue">4</div>
+      <div class="stat-val yellow">4</div>
       <div class="stat-sub">종목</div>
     </div>
     <div class="stat-box">
       <div class="stat-label">매도 검토</div>
-      <div class="stat-val red">7</div>
-      <div class="stat-sub">순환 기준</div>
+      <div class="stat-val red">16</div>
+      <div class="stat-sub">밸류 ratio≥2.0</div>
     </div>
   </div>
 
   <!-- 매수 종목 -->
   <div class="stock-list">
     <div class="stock-list-header buy">즉시 매수</div>
-    <div class="stock-item">
-      <div class="stock-name-wrap">
-        <span class="stock-name">SK하이닉스</span>
-        <span class="stock-badge cyclical">순환</span>
-      </div>
-      <div class="stock-info">ratio 0.45 · Capex +51% · HBM 사이클 지속</div>
-    </div>
-    <div class="stock-item">
-      <div class="stock-name-wrap">
-        <span class="stock-name">HD현대</span>
-        <span class="stock-badge cyclical">순환</span>
-      </div>
-      <div class="stock-info">ratio 0.67 · streak 강화 · 조선 지주사</div>
-    </div>
     <div class="stock-item">
       <div class="stock-name-wrap">
         <span class="stock-name">삼성바이오로직스</span>
@@ -371,45 +343,21 @@
       </div>
       <div class="stock-info">ratio 0.826 · accel 9.17 · ratio 0.7 이하 목표</div>
     </div>
-    <div class="stock-item">
-      <div class="stock-name-wrap">
-        <span class="stock-name">이수페타시스</span>
-        <span class="stock-badge cyclical">순환</span>
-      </div>
-      <div class="stock-info">ratio 1.63 · Capex +149% · 유니버스 내 Capex 최강</div>
-    </div>
-    <div class="stock-item">
-      <div class="stock-name-wrap">
-        <span class="stock-name">한화에어로스페이스</span>
-        <span class="stock-badge cyclical">순환</span>
-      </div>
-      <div class="stock-info">ratio 1.80 · Capex +113% · 전분기 2.14→1.80 개선</div>
-    </div>
   </div>
 
   <!-- 전략 방법론 미리보기 -->
-  <div class="section-title" style="margin-top:32px;">전략 방법론 — 4개 버킷</div>
+  <div class="section-title" style="margin-top:32px;">전략 방법론 — 2개 버킷</div>
 
   <div class="method-grid">
-    <div class="method-card cyclical">
-      <div class="method-tag">Bucket 1 · 34종목</div>
-      <div class="method-name">대형 경기순환주</div>
-      <div class="method-signal">신호: s1(ratio&lt;1.0) + s2(capex 증가)<br>streak 1~2 초입 타이밍이 최적<br>12m mean +43% (신호 ON 기준)</div>
-    </div>
     <div class="method-card value">
-      <div class="method-tag">Bucket 2 · 57종목</div>
+      <div class="method-tag">Bucket 1 · 57종목</div>
       <div class="method-name">대형 밸류주</div>
       <div class="method-signal">신호: ratio &lt; 0.5 단독<br>없으면 사지 않는다<br>12m mean +32.7%, median +22.3%</div>
     </div>
     <div class="method-card growth">
-      <div class="method-tag">Bucket 3 · 19종목</div>
+      <div class="method-tag">Bucket 2 · 19종목</div>
       <div class="method-name">대형 성장주</div>
       <div class="method-signal">신호: ratio&lt;0.5 + accel≥2<br>성장 가속 초기 구간 진입<br>12m mean +60.7%, median +52.5%</div>
-    </div>
-    <div class="method-card smid">
-      <div class="method-tag">Bucket 4 · 52종목</div>
-      <div class="method-name">중소형 성장주</div>
-      <div class="method-signal">신호: ratio &lt; 0.5 단독<br>가속 신호는 역효과 — 쓰지 않음<br>12m mean +18.2%</div>
     </div>
   </div>
 
