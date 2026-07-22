@@ -15,10 +15,12 @@
 복원하지 않음. US도 동일한 한계를 그대로 받아들이고 있음).
 
   .venv/bin/python scripts/analysis/build_pit_buckets.py
+  .venv/bin/python scripts/analysis/build_pit_buckets.py --min-q 28
 """
 
 from __future__ import annotations
 
+import argparse
 import sqlite3
 import sys
 from pathlib import Path
@@ -62,14 +64,19 @@ def build_company_pit(company: str, min_q: int) -> pd.DataFrame:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--min-q", type=int, default=PROFIT_STREAK_MIN_Q, help="연속 흑자 분기 수 (기본: config.PROFIT_STREAK_MIN_Q)")
+    args = parser.parse_args()
+    min_q = args.min_q
+
     mcap = pd.read_csv(MCAP_CSV, dtype={"Code": str})
     names = [str(x).strip() for x in mcap["Name"].tolist()]
 
-    table = f"pit_buckets{PROFIT_STREAK_MIN_Q}"
+    table = f"pit_buckets{min_q}"
     parts: list[pd.DataFrame] = []
     for i, name in enumerate(names, 1):
         print(f"[{i}/{len(names)}] {name}", file=sys.stderr, flush=True)
-        part = build_company_pit(name, PROFIT_STREAK_MIN_Q)
+        part = build_company_pit(name, min_q)
         if not part.empty:
             parts.append(part)
 

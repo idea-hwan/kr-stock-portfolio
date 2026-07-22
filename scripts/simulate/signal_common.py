@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from pathlib import Path
 
@@ -11,14 +12,17 @@ BENCHMARK_CODE = "KS200"  # KOSPI200 지수(ETF 아님, FDR 지수 코드) — c
 
 
 def load_pit_eligible_panel(panel_csv: Path, pit_db: Path, bucket_col: str) -> pd.DataFrame:
-    """mcap200_factor_panel.csv ⋈ pit_buckets16, {bucket_col}==1 인 (company, ttm_end_term)만.
+    """mcap200_factor_panel.csv ⋈ pit_buckets{N}, {bucket_col}==1 인 (company, ttm_end_term)만.
 
-    naive 버킷 CSV(오늘 통과 종목의 전체 히스토리)와 달리, 과거 특정 분기에만
-    조건을 만족했던 종목의 이벤트도 포함된다 — 생존편향 교정판.
+    테이블명의 N은 bucket_col 끝의 숫자에서 그대로 가져온다 (예: growth_pit28 → pit_buckets28,
+    build_pit_buckets.py --min-q 28로 생성). naive 버킷 CSV(오늘 통과 종목의 전체 히스토리)와
+    달리, 과거 특정 분기에만 조건을 만족했던 종목의 이벤트도 포함된다 — 생존편향 교정판.
     """
+    n = re.search(r"(\d+)$", bucket_col).group(1)
+    table = f"pit_buckets{n}"
     panel = pd.read_csv(panel_csv)
     con = sqlite3.connect(pit_db)
-    pit = pd.read_sql(f"SELECT company, ttm_end_term, {bucket_col} FROM pit_buckets16", con)
+    pit = pd.read_sql(f"SELECT company, ttm_end_term, {bucket_col} FROM {table}", con)
     con.close()
     merged = panel.merge(pit, on=["company", "ttm_end_term"], how="inner")
     return merged[merged[bucket_col] == 1].copy()

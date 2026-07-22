@@ -39,6 +39,25 @@ FINANCIAL_SECTOR_NAME_EXCEPTIONS: frozenset[str] = frozenset(
     {"신한지주", "코리안리", "맥쿼리인프라", "KB발해인프라"}
 )
 
+# 유틸리티(전력·가스) — 키워드매칭("전력"·"가스"·"에너지" 등)은 LG에너지솔루션·삼성전기·
+# 일진전기·대한전선·SK가스(LPG유통, 경계선이라 제외) 같은 비유틸리티 제조/화학사를 오탐해서
+# mcap200 유니버스 안에서 직접 대조한 실제 유틸리티만 명시 리스트로 뺀다(2026-07).
+UTILITY_SECTOR_NAME_EXACT: frozenset[str] = frozenset(
+    {"한국전력", "한국가스공사", "한전KPS", "한전기술"}
+)
+
+# 지주회사 — 영업이익 상당 부분이 브랜드 로열티·배당 수취(자회사 실적의 지분법 반영)라
+# 일반 사업회사의 성장/밸류 팩터와 성격이 달라 대형주 분석 유니버스에서 뺀다.
+# 이름이 "지주"/"홀딩스"로 끝나는 건 대체로 신뢰할 수 있으나(`HOLDING_COMPANY_NAME_SUFFIXES`),
+# SK·LG·GS·CJ·LS·한화·효성처럼 접미사 없이 그룹 지주회사 역할을 하는 곳은 예외 리스트로 추가.
+# 주의: 이 분류는 공정위 지정 현황에 따라 바뀐다 — 두산은 2009년 지주회사 전환했다가 2025-09
+# 지주회사 지위를 반납(공정위 승인)해서 여기 넣지 않았다. GS건설은 GS그룹의 건설 자회사일 뿐
+# 지주회사가 아니라서 제외 대상 아님. 목록이 바뀌면 재검증할 것.
+HOLDING_COMPANY_NAME_SUFFIXES: tuple[str, ...] = ("지주", "홀딩스")
+HOLDING_COMPANY_NAME_EXACT: frozenset[str] = frozenset(
+    {"SK", "LG", "GS", "CJ", "LS", "한화", "효성"}
+)
+
 
 def _normalize_krx_stock_code(code: object) -> str:
     """OpenDartReader find_corp_code: 6자리 종목코드. CSV가 86790 형태일 때 086790 으로 맞춤."""
@@ -110,6 +129,21 @@ def financial_sector_exclusion_mask(df: pd.DataFrame) -> pd.Series:
     return ex
 
 
+def utility_sector_exclusion_mask(df: pd.DataFrame) -> pd.Series:
+    """행 단위 True = 유틸리티(전력·가스) 종목명 — `Name` 필수. `UTILITY_SECTOR_NAME_EXACT` 참고."""
+    nm = df["Name"].astype(str).str.strip()
+    return nm.isin(UTILITY_SECTOR_NAME_EXACT)
+
+
+def holding_company_exclusion_mask(df: pd.DataFrame) -> pd.Series:
+    """행 단위 True = 지주회사 종목명 — `Name` 필수. `HOLDING_COMPANY_NAME_EXACT`/`_SUFFIXES` 참고."""
+    nm = df["Name"].astype(str).str.strip()
+    ex = nm.isin(HOLDING_COMPANY_NAME_EXACT)
+    for suf in HOLDING_COMPANY_NAME_SUFFIXES:
+        ex |= nm.str.endswith(suf)
+    return ex
+
+
 def listing_pipeline_allowed_names() -> frozenset[str]:
     """
     DART 적재·TTM/분석 파이프라인 공통 허용 종목명 집합.
@@ -150,6 +184,8 @@ def listing_names_ordered_by_marcap(
     exclude_spac_dept: bool = True,
     exclude_markets: bool = True,
     exclude_financial_sector: bool = True,
+    exclude_utility_sector: bool = True,
+    exclude_holding_company: bool = True,
 ) -> list[str]:
     """
     `stock_listing.csv` 를 시총(Marcap) 내림차순으로 본 Name 목록.
@@ -158,6 +194,8 @@ def listing_names_ordered_by_marcap(
     기본: 우선주·이름 스팩·리츠·펀드·신탁·Dept SPAC·`LISTING_EXCLUDED_MARKETS` 행 제외.
     `exclude_financial_sector`(기본 True): 은행·보험·증권·카드·금융지주 종목명 제외
     (`financial_sector_exclusion_mask`) — us-stock-portfolio의 EXCLUDED_SECTORS 상응.
+    `exclude_utility_sector`(기본 True): 한국전력·한국가스공사 등 유틸리티 제외.
+    `exclude_holding_company`(기본 True): 지주회사(SK·LG·GS 등, "OO지주"/"OO홀딩스") 제외.
     """
     df = load_listing_dataframe()
     if "Marcap" not in df.columns:
@@ -181,6 +219,10 @@ def listing_names_ordered_by_marcap(
     )
     if exclude_financial_sector:
         ex |= financial_sector_exclusion_mask(tmp)
+    if exclude_utility_sector:
+        ex |= utility_sector_exclusion_mask(tmp)
+    if exclude_holding_company:
+        ex |= holding_company_exclusion_mask(tmp)
     work = work.loc[~ex]
     work = work.assign(Marcap=pd.to_numeric(work["Marcap"], errors="coerce"))
     work = work.sort_values("Marcap", ascending=False, na_position="last")
@@ -202,12 +244,20 @@ def company_names_top_n_by_marcap(n: int) -> frozenset[str]:
     return frozenset(ordered[:n])
 
 
-def mcap_top_n_listing_rows(n: int, *, exclude_financial_sector: bool = True) -> pd.DataFrame:
+def mcap_top_n_listing_rows(
+    n: int,
+    *,
+    exclude_financial_sector: bool = True,
+    exclude_utility_sector: bool = True,
+    exclude_holding_company: bool = True,
+) -> pd.DataFrame:
     """
     시총(Marcap) 내림차순 상위 n행. `listing_names_ordered_by_marcap` 과 동일 필터·Name 중복 시 첫 행만 유지.
     컬럼: rank(1..n), Code, Name, Marcap, (있으면) Market
 
     `exclude_financial_sector`(기본 True): 은행·보험·증권·카드·금융지주 종목명 제외.
+    `exclude_utility_sector`(기본 True): 한국전력·한국가스공사 등 유틸리티 제외.
+    `exclude_holding_company`(기본 True): 지주회사(SK·LG·GS 등, "OO지주"/"OO홀딩스") 제외.
     """
     if n < 1:
         raise ValueError("n must be >= 1")
@@ -223,6 +273,10 @@ def mcap_top_n_listing_rows(n: int, *, exclude_financial_sector: bool = True) ->
     ex = listing_instrument_exclusion_mask(tmp)
     if exclude_financial_sector:
         ex |= financial_sector_exclusion_mask(tmp)
+    if exclude_utility_sector:
+        ex |= utility_sector_exclusion_mask(tmp)
+    if exclude_holding_company:
+        ex |= holding_company_exclusion_mask(tmp)
     work = work.loc[~ex]
     work = work.assign(Marcap=pd.to_numeric(work["Marcap"], errors="coerce"))
     work = work.sort_values("Marcap", ascending=False, na_position="last")

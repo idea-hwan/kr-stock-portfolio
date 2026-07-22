@@ -10,7 +10,9 @@ rev2y가속+P/OP저평가+capex1y↓)이 아니라, 그 이전 탐색 단계와 
   성장 — rev/op/ni 각각 1y↑·1y↓·2y↓·가속(1y>2y)·가속(2y>4y)  [15개]
   투자 — capex 1y↑·1y↓·2y↑·2y↓·가속(1y>2y)                    [5개]
   저평가 — P/NI·P/OP·P/rev 각각 저평가·고평가 + "P/NI 우선, 안되면
-           P/OP 폴백"(표시용 val_undervalued 방식) 저평가·고평가  [8개]
+           P/OP 폴백"(표시용 val_undervalued 방식) 저평가·고평가 +
+           "P/OP 우선, 안되면 P/NI, 안되면 P/rev 폴백"
+           (large_growth_selection_strategy.md Signal A와 동일 우선순위) 저평가·고평가  [10개]
 
 alpha_12m/18m = 종목 수익률 − 동일 앵커일 KOSPI200(KS200) 수익률(signal_common.add_benchmark_alpha).
 KOSPI200이 삼성전자·SK하이닉스(mcap200 시총의 53.8%) 쏠림으로 왜곡됐는지는 동일가중
@@ -107,6 +109,29 @@ def _ni_priority_high(df: pd.DataFrame, t: float = T) -> pd.Series:
     return cur.notna() & (cur > ref / t)
 
 
+def _op_priority_ratio(df: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
+    """P/OP 우선, 안되면 P/NI, 안되면 P/rev 폴백 — signal_common.compute_per_ratio와 동일 순서
+    (large_growth_selection_strategy.md Signal A 정의)."""
+    cur = pd.Series(float("nan"), index=df.index)
+    ref = pd.Series(float("nan"), index=df.index)
+    for pair_cur, pair_ref in (("per_op_20d", "per_op_4y"), ("per_ni_20d", "per_ni_4y"), ("per_rev_20d", "per_rev_4y")):
+        need = cur.isna()
+        ok = need & df[pair_ref].notna() & (df[pair_ref] > 0) & df[pair_cur].notna() & (df[pair_cur] > 0)
+        cur.loc[ok] = df.loc[ok, pair_cur]
+        ref.loc[ok] = df.loc[ok, pair_ref]
+    return cur, ref
+
+
+def _op_priority_low(df: pd.DataFrame, t: float = T) -> pd.Series:
+    cur, ref = _op_priority_ratio(df)
+    return cur.notna() & (cur < ref * t)
+
+
+def _op_priority_high(df: pd.DataFrame, t: float = T) -> pd.Series:
+    cur, ref = _op_priority_ratio(df)
+    return cur.notna() & (cur > ref / t)
+
+
 # ── 팩터 목록 (라벨, 함수, 축) ──────────────────────────────────────────────────
 
 FACTORS: list[tuple[str, "callable[[pd.DataFrame], pd.Series]", str]] = []
@@ -138,6 +163,8 @@ FACTORS += [
     ("P/rev_고평가", lambda df: _high(df, "per_rev_20d", "per_rev_4y"), "저평가"),
     ("ni우선폴백_저평가", _ni_priority_low, "저평가"),
     ("ni우선폴백_고평가", _ni_priority_high, "저평가"),
+    ("op우선폴백_저평가", _op_priority_low, "저평가"),
+    ("op우선폴백_고평가", _op_priority_high, "저평가"),
 ]
 
 FACTOR_MAP = {lbl: fn for lbl, fn, _ in FACTORS}
