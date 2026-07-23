@@ -52,7 +52,9 @@ def main() -> int:
     )
     print(f"Wrote {OUT_CSV}  rows={n_rows}  companies_ok={n_ok}  skipped={len(skipped)}")
     if skipped:
-        skip_path = OUT_CSV.with_suffix(".skipped.tsv")
+        scratch_dir = OUT_CSV.parent / "scratch"
+        scratch_dir.mkdir(parents=True, exist_ok=True)
+        skip_path = scratch_dir / OUT_CSV.with_suffix(".skipped.tsv").name
         with skip_path.open("w", encoding="utf-8") as fp:
             fp.write("company\treason\n")
             for co, reason in skipped:

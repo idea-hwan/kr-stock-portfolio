@@ -38,7 +38,7 @@ PANEL_CSV = _ROOT / "data" / "analytics" / "mcap200_factor_panel.csv"
 PIT_DB = _ROOT / "data" / "analytics" / "pit_buckets.db"
 PRICES_DB = _ROOT / "data" / "analytics" / "prices.db"
 
-OUT_DIR = _ROOT / "data" / "analytics" / "simulate_results"
+OUT_DIR = _ROOT / "data" / "analytics" / "scratch" / "simulate_results"
 SINGLES_CSV = OUT_DIR / "value_factor_grid_singles.csv"
 COMBO2_CSV = OUT_DIR / "value_factor_grid_combo2.csv"
 

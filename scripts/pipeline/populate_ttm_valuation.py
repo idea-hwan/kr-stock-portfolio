@@ -514,7 +514,9 @@ def main() -> int:
         f"--computed-at {computed_at} --anchor-term {args.term}"
     )
 
-    gap_path = ANALYTICS_DIR / f"ttm_valuation_gaps_{args.term}_{computed_at[:10]}.json"
+    gap_dir = ANALYTICS_DIR / "scratch"
+    gap_dir.mkdir(parents=True, exist_ok=True)
+    gap_path = gap_dir / f"ttm_valuation_gaps_{args.term}_{computed_at[:10]}.json"
     try:
         gap_path.write_text(
             json.dumps(
