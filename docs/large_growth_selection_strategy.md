@@ -2,7 +2,7 @@
 
 > run_id=5 / as_of=2026-07-22 / PIT 교정 + 유틸리티·지주회사 제외 유니버스
 > (growth_pit16, 141종목·2468이벤트), KOSPI200 대비 alpha 기준. **신호 확정.**
-> 근거: [large_growth_pit_signal_verify.md](large_growth_pit_signal_verify.md) §5.
+> 근거: [large_growth_pit_signal_verify.md](methodology/large_growth_pit_signal_verify.md) §5.
 
 ---
 
@@ -77,8 +77,8 @@ Signal B (가속)   = acceleration = op_geom_1y_mcum / op_geom_4y_mcum
 | FCF 부호 | 검증 시점마다 방향이 뒤집힘 | 노이즈로 판단, 안정적 패턴 아님 |
 | rev_1y↓(매출 역성장) + capex 감소 + 저평가 조합 | 3팩터 그리드 1위(alpha mean +36.2%)지만 median -3.8% | mean만 높고 median 마이너스 — 소수 대박 종목 주도, "성장주" 취지와도 반대(매출 역성장이 좋다는 논리) |
 
-자세한 원본 수치는 `large_growth_pit_signal_verify.md`(raw/alpha 비교 과정)와
-`large_growth_pit_factor_grid.md`(30개 팩터 그리드서치)에 남겨둔다.
+자세한 원본 수치는 `methodology/large_growth_pit_signal_verify.md`(raw/alpha 비교 과정)와
+`methodology/large_growth_pit_factor_grid.md`(30개 팩터 그리드서치)에 남겨둔다.
 
 ---
 
@@ -112,8 +112,8 @@ acceleration ≥ 5로 진입   →  가속이 아니라 기저효과 가능성 �
   쌓이면 재확인.
 - 15m/18m median이 마이너스로 돌아서는 이유(소수 종목 주도)를 종목 단위로 아직
   분해해보지 않았다.
-- 현재 분기 종목별 판단은 docs/large_growth_analysis_*.md 참고 — 아직 이전 신호
-  기준 수치를 인용 중이라 이번 개정 반영 필요.
+- 이전 신호(per_ratio<0.5 + accel≥2) 기준으로 작성됐던 종목별 분석 문서는 이번 개정으로
+  폐기했다. 확정 신호(§3) 기준 종목별 판단은 아직 다시 작성하지 않았다.
 ```
 
 ---
