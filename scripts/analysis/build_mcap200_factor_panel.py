@@ -45,7 +45,7 @@ def main() -> int:
         db_path=DEFAULT_DB,
         growth_db=DEFAULT_GROWTH_DB,
         min_quarters=0,
-        forward_months=[12, 15, 18],
+        forward_months=[3, 6, 9, 12, 15, 18],
         anchor_term=None,
         computed_at=None,
         sleep_sec=0.0,

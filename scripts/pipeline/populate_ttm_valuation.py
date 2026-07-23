@@ -92,6 +92,8 @@ CREATE TABLE IF NOT EXISTS ttm_valuation_series (
   per_gp_4y_mean        REAL,
   per_rev_20d_mean      REAL,
   per_rev_4y_mean       REAL,
+  per_fcf_20d_mean      REAL,
+  per_fcf_4y_mean       REAL,
   per_run_error         TEXT,
 
   ttm_cfo_krw           INTEGER,
@@ -131,6 +133,8 @@ def _migrate_ttm_valuation_schema(con: sqlite3.Connection) -> None:
         ("per_gp_4y_mean", "REAL"),
         ("per_rev_20d_mean", "REAL"),
         ("per_rev_4y_mean", "REAL"),
+        ("per_fcf_20d_mean", "REAL"),
+        ("per_fcf_4y_mean", "REAL"),
         ("ni_fs_roll4_ps", "REAL"),
         ("div_ni_ps_ttm", "REAL"),
         ("div_ni_ps_fy", "REAL"),
@@ -219,6 +223,8 @@ def _flatten_series_row(
         None,
         row.get("per_rev_20d_mean"),
         row.get("per_rev_4y_mean"),
+        row.get("per_fcf_20d_mean"),
+        row.get("per_fcf_4y_mean"),
         per_run_error,
         tk.get("cfo"),
         tk.get("capex"),
@@ -241,6 +247,7 @@ INSERT OR REPLACE INTO ttm_valuation_series (
   per_eps_adjusted, per_20d_mean, per_4y_mean,
   per_op_20d_mean, per_op_4y_mean, per_gp_20d_mean, per_gp_4y_mean,
   per_rev_20d_mean, per_rev_4y_mean,
+  per_fcf_20d_mean, per_fcf_4y_mean,
   per_run_error,
   ttm_cfo_krw, ttm_capex_krw, ttm_fcf_krw,
   ni_fs_roll4_ps, div_ni_ps_ttm, div_ni_ps_fy, ni_eps_basis
@@ -250,6 +257,7 @@ INSERT OR REPLACE INTO ttm_valuation_series (
   ?,?,?,?,?,
   ?,?,?,
   ?,?,?,?,?,?,?,?,?,?,?,?,
+  ?,?,
   ?,
   ?,?,?,?,?,?,?
 )

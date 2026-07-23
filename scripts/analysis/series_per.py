@@ -94,6 +94,14 @@ def _fy_first_pl_ps_for_multiples(row: dict[str, Any], pl_key: str) -> float | N
     return r
 
 
+def _fcf_ps_for_multiples(row: dict[str, Any]) -> float | None:
+    """FCF(영업CF-CAPEX) 롤4 TTM 주당값. op/ni/rev와 달리 FY 우선폴백 없음 — 양수만 사용."""
+    if row.get("error"):
+        return None
+    fcf = (row.get("ttm_per_share_won_sum_quarters") or {}).get("fcf")
+    return _positive_ps(fcf)
+
+
 def _face_value_from_row(row: dict[str, Any]) -> float | None:
     v = row.get("face_value_at_end")
     if v is None or (isinstance(v, float) and np.isnan(v)):
@@ -120,6 +128,7 @@ def _adjusted_valuation_table_from_series(series: list[dict[str, Any]]) -> pd.Da
                 "EPS_raw": _fy_first_pl_ps_for_multiples(row, "net_income_parent"),
                 "Rev_raw": _fy_first_pl_ps_for_multiples(row, "revenue"),
                 "Op_raw": _fy_first_pl_ps_for_multiples(row, "operating_income"),
+                "Fcf_raw": _fcf_ps_for_multiples(row),
             }
         )
     if not rec:
@@ -136,9 +145,10 @@ def _adjusted_valuation_table_from_series(series: list[dict[str, Any]]) -> pd.Da
     eps_adj: list[float | None] = []
     rev_adj: list[float | None] = []
     op_adj: list[float | None] = []
+    fcf_adj: list[float | None] = []
 
-    raw_cols = ("EPS_raw", "Rev_raw", "Op_raw")
-    out_lists = (eps_adj, rev_adj, op_adj)
+    raw_cols = ("EPS_raw", "Rev_raw", "Op_raw", "Fcf_raw")
+    out_lists = (eps_adj, rev_adj, op_adj, fcf_adj)
 
     for i in range(len(ndf)):
         fv_i = float(ndf.loc[i, "FaceValue_ffill"])
@@ -161,6 +171,7 @@ def _adjusted_valuation_table_from_series(series: list[dict[str, Any]]) -> pd.Da
     ndf["EPS_adj"] = eps_adj
     ndf["Rev_adj"] = rev_adj
     ndf["Op_adj"] = op_adj
+    ndf["Fcf_adj"] = fcf_adj
     out = ndf.sort_values("filing_date", ascending=True).reset_index(drop=True)
     return out[
         [
@@ -173,6 +184,8 @@ def _adjusted_valuation_table_from_series(series: list[dict[str, Any]]) -> pd.Da
             "Rev_adj",
             "Op_raw",
             "Op_adj",
+            "Fcf_raw",
+            "Fcf_adj",
         ]
     ]
 
@@ -316,11 +329,13 @@ def enrich_ttm_series_with_per(r: dict[str, Any], company: str) -> None:
     m_eps = _merge_price_ratio(px, adj_tbl, "EPS_adj")
     m_rev = _merge_price_ratio(px, adj_tbl, "Rev_adj")
     m_op = _merge_price_ratio(px, adj_tbl, "Op_adj")
+    m_fcf = _merge_price_ratio(px, adj_tbl, "Fcf_adj")
 
     term_maps = {
         "eps": dict(zip(adj_tbl["term"], adj_tbl["EPS_adj"])),
         "rev": dict(zip(adj_tbl["term"], adj_tbl["Rev_adj"])),
         "op": dict(zip(adj_tbl["term"], adj_tbl["Op_adj"])),
+        "fcf": dict(zip(adj_tbl["term"], adj_tbl["Fcf_adj"])),
     }
     term_to_filing = dict(zip(adj_tbl["term"], adj_tbl["filing_date"]))
 
@@ -334,6 +349,7 @@ def enrich_ttm_series_with_per(r: dict[str, Any], company: str) -> None:
         eps_adj = term_maps["eps"].get(te)
         rev_adj = term_maps["rev"].get(te)
         op_adj = term_maps["op"].get(te)
+        fcf_adj = term_maps["fcf"].get(te)
 
         if fd is not None:
             row["per_filing_anchor"] = fd.strftime("%Y-%m-%d")
@@ -352,6 +368,7 @@ def enrich_ttm_series_with_per(r: dict[str, Any], company: str) -> None:
         _set_20d_4y(row, d_last, px, eps_adj, m_eps, "per_20d_mean", "per_4y_mean")
         _set_20d_4y(row, d_last, px, op_adj, m_op, "per_op_20d_mean", "per_op_4y_mean")
         _set_20d_4y(row, d_last, px, rev_adj, m_rev, "per_rev_20d_mean", "per_rev_4y_mean")
+        _set_20d_4y(row, d_last, px, fcf_adj, m_fcf, "per_fcf_20d_mean", "per_fcf_4y_mean")
 
     meta["per_eps_basis"] = (
         "EPS 분모(지배순이익): FY 재무(11011) → 재무 롤4 TTM(양수만). "
@@ -373,6 +390,8 @@ def clear_per_price_fields(row: dict[str, Any]) -> None:
         "per_gp_4y_mean",
         "per_rev_20d_mean",
         "per_rev_4y_mean",
+        "per_fcf_20d_mean",
+        "per_fcf_4y_mean",
     ):
         row[k] = None
     row.pop("per_filing_anchor", None)

@@ -1,8 +1,9 @@
 # 대형 성장주 매수/홀딩/매도 선정 전략
 
-> run_id=5 / as_of=2026-07-22 / PIT 교정 + 유틸리티·지주회사 제외 유니버스
-> (growth_pit16, 141종목·2468이벤트), KOSPI200 대비 alpha 기준. **신호 확정.**
-> 근거: [large_growth_pit_signal_verify.md](methodology/large_growth_pit_signal_verify.md) §5.
+> 매수 run_id=5(2026-07-22) · 매도 run_id=6(2026-07-23) / PIT 교정 + 유틸리티·지주회사
+> 제외 유니버스(growth_pit16, 141종목·2468이벤트), KOSPI200 대비 alpha 기준.
+> **매수·매도 신호 모두 확정.**
+> 근거: 매수 §4 백테스트·§5 폐기한 조합, 매도 §7·§7.1.
 
 ---
 
@@ -77,8 +78,8 @@ Signal B (가속)   = acceleration = op_geom_1y_mcum / op_geom_4y_mcum
 | FCF 부호 | 검증 시점마다 방향이 뒤집힘 | 노이즈로 판단, 안정적 패턴 아님 |
 | rev_1y↓(매출 역성장) + capex 감소 + 저평가 조합 | 3팩터 그리드 1위(alpha mean +36.2%)지만 median -3.8% | mean만 높고 median 마이너스 — 소수 대박 종목 주도, "성장주" 취지와도 반대(매출 역성장이 좋다는 논리) |
 
-자세한 원본 수치는 `methodology/large_growth_pit_signal_verify.md`(raw/alpha 비교 과정)와
-`methodology/large_growth_pit_factor_grid.md`(30개 팩터 그리드서치)에 남겨둔다.
+원본 그리드서치·raw/alpha 비교 과정은 별도 문서로 남기지 않는다 — 재현이 필요하면
+`scripts/simulate/growth_factor_grid.py`, `scripts/simulate/verify_growth_signal.py`로 다시 뽑는다.
 
 ---
 
@@ -94,14 +95,43 @@ acceleration ≥ 5(급가속)를 "더 좋은 신호"로 착각하지 않는다 �
 
 ---
 
-## 7. 홀딩/매도 기준
+## 7. 매도 확정 신호 (run_id=6 / as_of=2026-07-23)
+
+us-stock-portfolio의 매도 신호 방법론(성장꺾임·고평가·투자압박 3축 그리드서치, 3/6/9개월
+alpha 기준)을 KR growth_pit16에 이식해 재검증했다. P/FCF는 fcf_ps(roll4 TTM, FY우선폴백
+없음) 그대로 쓴 간이 버전 — 결측이 P/OP·P/NI보다 많다.
 
 ```
-per_ratio < 1.5           →  홀딩
-per_ratio ≥ 1.5           →  매도 검토
-per_ratio ≥ 2.0           →  매도 (하방 위험 명확: median -9.5%, <-20% 비율 37%, raw 기준)
-acceleration ≥ 5로 진입   →  가속이 아니라 기저효과 가능성 — 매도 트리거는 아니지만 재평가
+매도: ni_1y↓(순이익 1년 역성장) AND cfo_1y↓(영업현금흐름 1년 역성장)
+      AND P/NI 고평가(per_ni_20d / per_ni_4y > 1.25)
+
+→ alpha(KOSPI200) mean/median: 3m -11.7%/-12.3%, 6m -15.6%/-12.3%,
+  9m -25.7%/-17.2%, 12m -35.2%/-22.0%  (n=148, 74종목, 2020Q3~2026Q1)
+
+보유 기간이 늘어날수록 악화(3m→12m mean -11.7%→-35.2%) — 조건 충족 확인 즉시
+매도, "버티면 회복"을 기대하지 않는다.
 ```
+
+세 조건이 동시에 필요하다 — 순이익·현금흐름이 같이 꺾이고 밸류에이션까지 비싸진
+경우만 잡는다. 개별 조건 단독으로는 신호가 약하거나(P/NI_고평가 단독 n=514,
+alpha 3~12m -6.9~-12.1%) 아예 반대 방향으로 나온다(아래 §7.1).
+
+### 7.1 참고 — 검토했으나 채택 안 함
+
+| 조합 | n | alpha mean(3m/6m/9m/12m) | 비고 |
+|---|---|---|---|
+| P/NI_고평가 단독 | 514 | -6.9/-5.3/-10.4/-12.1 | 표본 크지만 확정 신호보다 약함 |
+| P/NI_고평가 + cfo_1y↓ (2팩터) | 201 | -10.0/-11.6/-20.1/-27.8 | 확정 신호와 거의 동급으로 강하고 표본도 더 큼 — ni_1y↓ 없이도 성립하지만, 안전 마진으로 3팩터(확정 신호)를 채택 |
+| rev_1y↓ 단독 | 669 | -1.6/+2.2/+2.1/+1.4 | 매출 역성장은 KR 성장주에서 매도 신호로 작동 안 함 — us-stock-portfolio(rev1y역성장이 핵심 축)와 정반대 결과. 폐기 |
+
+### 7.2 홀딩
+
+```
+§7 매도 조건 미충족 → 홀딩 (별도 홀딩 전용 조건 없음)
+```
+
+*이전 버전(per_ratio≥1.5 매도검토·≥2.0 매도, 그리드서치 검증 없이 정한 단순 임계값)은
+위 확정 신호로 대체했다.*
 
 ---
 
@@ -114,9 +144,13 @@ acceleration ≥ 5로 진입   →  가속이 아니라 기저효과 가능성 �
   분해해보지 않았다.
 - 이전 신호(per_ratio<0.5 + accel≥2) 기준으로 작성됐던 종목별 분석 문서는 이번 개정으로
   폐기했다. 확정 신호(§3) 기준 종목별 판단은 아직 다시 작성하지 않았다.
+- 매도 신호(§7)의 P/NI 배수는 20일/4년 평균 모두 결측 없는 경우만 대상 — 결측 종목엔
+  신호 자체가 발동하지 않는다(과거 놓침이 아니라 "판단 불가"로 처리됨).
+- 매도 신호 out-of-sample 검증 아직 안 함(매수 신호와 동일한 미결 사항).
 ```
 
 ---
 
-*run_id=5 / as_of=2026-07-22 / 확정 신호: ratio[0.5,1.0) + accel[2,5), growth_pit16, alpha(KOSPI200) 기준*
-*재현: `.venv/bin/python scripts/simulate/verify_growth_signal.py`*
+*매수 run_id=5 / as_of=2026-07-22 / 확정 신호: ratio[0.5,1.0) + accel[2,5), growth_pit16, alpha(KOSPI200) 기준*
+*매도 run_id=6 / as_of=2026-07-23 / 확정 신호: ni_1y↓ + cfo_1y↓ + P/NI 고평가(>1.25), growth_pit16, alpha(KOSPI200) 기준*
+*재현: `.venv/bin/python scripts/simulate/verify_growth_signal.py` (매수), `.venv/bin/python scripts/simulate/growth_sell_factor_grid.py` (매도)*

@@ -69,6 +69,8 @@ _DISPLAY_COLS = [
     "per_op_4y_mean",
     "per_rev_20d_mean",
     "per_rev_4y_mean",
+    "per_fcf_20d_mean",
+    "per_fcf_4y_mean",
     "per_run_error",
     "computed_at",
     "anchor_term",
@@ -137,6 +139,10 @@ _SPLIT_GROUPS: list[tuple[str, list[str]]] = [
     (
         "[5d] P ÷ TTM revenue / sh",
         ["ttm_end_term", "per_rev_20d_mean", "per_rev_4y_mean"],
+    ),
+    (
+        "[5e] P ÷ TTM FCF / sh (FY 우선폴백 없음, roll4만)",
+        ["ttm_end_term", "per_fcf_20d_mean", "per_fcf_4y_mean"],
     ),
 ]
 

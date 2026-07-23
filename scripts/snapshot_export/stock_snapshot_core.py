@@ -177,6 +177,8 @@ def snapshot_column_order(forward_months: list[int]) -> list[str]:
         "per_op_20d",
         "per_rev_4y",
         "per_rev_20d",
+        "per_fcf_4y",
+        "per_fcf_20d",
         *list(GROWTH_GEOM_KEYS),
         *ret_keys,
     ]
@@ -257,6 +259,8 @@ def build_stock_snapshot_df(
         per_op_20d = _float_field(row, "per_op_20d_mean")
         per_rev_4y = _float_field(row, "per_rev_4y_mean")
         per_rev_20d = _float_field(row, "per_rev_20d_mean")
+        per_fcf_4y = _float_field(row, "per_fcf_4y_mean")
+        per_fcf_20d = _float_field(row, "per_fcf_20d_mean")
 
         te_s = str(te).strip() if te is not None else ""
         gm = growth_by_term.get(te_s) if growth_by_term and te_s else None
@@ -278,6 +282,8 @@ def build_stock_snapshot_df(
             "per_op_20d": per_op_20d,
             "per_rev_4y": per_rev_4y,
             "per_rev_20d": per_rev_20d,
+            "per_fcf_4y": per_fcf_4y,
+            "per_fcf_20d": per_fcf_20d,
         }
         for k in GROWTH_GEOM_KEYS:
             rec[k] = float(gm[k]) if gm else float("nan")
