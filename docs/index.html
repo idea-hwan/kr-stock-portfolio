@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>대형 성장주·밸류주 판단로직</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root {
+  --bg: #0d1117; --panel: #161b22; --border: #30363d;
+  --text: #e6edf3; --sub: #8b949e; --pos: #3fb950; --neg: #f85149; --accent: #58a6ff;
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font-family: -apple-system, "Pretendard", "Malgun Gothic", sans-serif; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 32px 20px 80px; }
+h1 { font-size: 22px; margin-bottom: 4px; }
+.meta { color: var(--sub); font-size: 13px; margin-bottom: 28px; }
+h2 { font-size: 16px; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-top: 40px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+@media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; }
+.card h3 { margin: 0 0 6px; font-size: 14px; }
+.plain { font-size: 13px; color: var(--text); margin: 0 0 8px; line-height: 1.6; }
+.formula { font-size: 11px; color: var(--sub); font-family: monospace; margin: 0 0 10px; line-height:1.5; background: rgba(255,255,255,0.03); padding: 6px 8px; border-radius: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th, td { padding: 5px 6px; text-align: right; border-bottom: 1px solid var(--border); }
+th:first-child, td:first-child { text-align: left; }
+.num { font-variant-numeric: tabular-nums; }
+.sub { color: var(--sub); font-size: 10px; }
+.note { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; font-size: 13px; line-height: 1.7; margin-top: 16px; }
+.note b { color: var(--accent); }
+.baseline { color: var(--sub); font-size: 12px; margin-top: 10px; }
+footer { color: var(--sub); font-size: 11px; margin-top: 48px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>대형 성장주·밸류주 판단로직</h1>
+  <p class="meta">생성 시각: 2026-07-23 07:57 UTC · 데이터: mcap200_factor_panel.csv, pit_buckets.db, prices.db (매 실행마다 재계산 — 캐시된 숫자 아님)</p>
+  <p class="meta">아래 표의 수익률은 전부 <b>미래(forward) 수익률</b>이다 — 이 조건을 만족한 시점에 실제로
+  샀다고 가정하고, 그 이후 3/6/9/12개월 동안 얼마를 벌었는지를 계산한 것이다(과거 추세가 아니다).</p>
+
+  <h2>성장주 (growth_pit16 — 영업이익 16분기 연속 흑자, 141종목·2468이벤트, 2020Q3~2026Q1)</h2>
+  <div class="grid">
+    
+    <div class="card">
+      <h3>매수</h3>
+      <p class="plain">적당히 저평가돼 있고(너무 싸지도, 안 싸지도 않은 구간) 영업이익이 최근 1년 새 4년 평균보다 2~5배 빠르게 늘고 있는 종목</p>
+      <p class="formula">0.5 ≤ per_ratio &lt; 1.0  AND  2 ≤ acceleration &lt; 5</p>
+      <table>
+        <thead><tr><th>기간</th><th>n (해당 비중)</th><th>raw mean/median</th><th>alpha mean/median</th></tr></thead>
+        <tbody><tr><td>12m</td><td>162 <span class="sub">(전체의 6.6%)</span></td><td class="num">+27.4% / +5.2%</td><td class="num">+10.1% / +2.1%</td></tr></tbody>
+      </table>
+    </div>
+    
+    
+    <div class="card">
+      <h3>매도</h3>
+      <p class="plain">순이익이 1년 전보다 줄었고, 영업으로 벌어들이는 현금도 줄었는데, 주가는 평소(4년 평균)보다 25% 이상 비싸게 거래되는 종목</p>
+      <p class="formula">ni_1y↓  AND  cfo_1y↓  AND  P/NI 고평가(per_ni_20d/per_ni_4y &gt; 1.25)</p>
+      <table>
+        <thead><tr><th>기간</th><th>n (해당 비중)</th><th>raw mean/median</th><th>alpha mean/median</th></tr></thead>
+        <tbody><tr><td>3m</td><td>148 <span class="sub">(전체의 6.0%)</span></td><td class="num">+3.2% / -0.1%</td><td class="num">-11.7% / -12.3%</td></tr><tr><td>6m</td><td>148 <span class="sub">(전체의 6.0%)</span></td><td class="num">+8.3% / -0.9%</td><td class="num">-15.6% / -12.3%</td></tr><tr><td>9m</td><td>148 <span class="sub">(전체의 6.0%)</span></td><td class="num">+13.3% / -2.6%</td><td class="num">-25.7% / -17.2%</td></tr><tr><td>12m</td><td>148 <span class="sub">(전체의 6.0%)</span></td><td class="num">+12.2% / -3.7%</td><td class="num">-35.2% / -22.0%</td></tr></tbody>
+      </table>
+    </div>
+    
+  </div>
+  <p class="baseline">baseline(전체) 12m — raw mean +24.5% / median +0.9% · alpha mean -6.4% / median -9.4%</p>
+
+  <h2>밸류주 (value_pit16 — 순이익 16분기 연속 흑자, 120종목·1782이벤트, 2020Q3~2026Q1)</h2>
+  <div class="grid">
+    
+    <div class="card">
+      <h3>매수</h3>
+      <p class="plain">평소(4년 평균)보다 확실히 싸게 거래되고 있고, 영업이익은 1년 전보다 늘어난 종목 — 싸기만 하고 실적이 나빠지는 '가치함정'은 제외</p>
+      <p class="formula">per_ratio &lt; 0.5  AND  op_geom_1y_mcum &gt; 0</p>
+      <table>
+        <thead><tr><th>기간</th><th>n (해당 비중)</th><th>raw mean/median</th><th>alpha mean/median</th></tr></thead>
+        <tbody><tr><td>12m</td><td>153 <span class="sub">(전체의 8.6%)</span></td><td class="num">+31.0% / +11.8%</td><td class="num">+10.5% / +4.2%</td></tr></tbody>
+      </table>
+    </div>
+    
+    
+    <div class="card">
+      <h3>매도</h3>
+      <p class="plain">순이익이 1년 전보다 줄었고, 영업으로 벌어들이는 현금도 줄었는데, 주가는 평소(4년 평균)보다 25% 이상 비싸게 거래되는 종목</p>
+      <p class="formula">ni_1y↓  AND  cfo_1y↓  AND  P/NI 고평가(per_ni_20d/per_ni_4y &gt; 1.25)</p>
+      <table>
+        <thead><tr><th>기간</th><th>n (해당 비중)</th><th>raw mean/median</th><th>alpha mean/median</th></tr></thead>
+        <tbody><tr><td>3m</td><td>127 <span class="sub">(전체의 7.1%)</span></td><td class="num">+2.8% / -1.0%</td><td class="num">-12.7% / -12.4%</td></tr><tr><td>6m</td><td>127 <span class="sub">(전체의 7.1%)</span></td><td class="num">+8.9% / -0.2%</td><td class="num">-16.6% / -13.1%</td></tr><tr><td>9m</td><td>127 <span class="sub">(전체의 7.1%)</span></td><td class="num">+15.0% / -2.2%</td><td class="num">-28.4% / -18.8%</td></tr><tr><td>12m</td><td>127 <span class="sub">(전체의 7.1%)</span></td><td class="num">+12.4% / -2.2%</td><td class="num">-40.5% / -22.9%</td></tr></tbody>
+      </table>
+    </div>
+    
+  </div>
+  <p class="baseline">baseline(전체) 12m — raw mean +26.0% / median +1.3% · alpha mean -5.8% / median -7.9%</p>
+
+  <h2>용어</h2>
+  <div class="note gloss">
+    <b>per_ratio</b> = 최근 20일 평균 PER ÷ 최근 4년 평균 PER. 1보다 작으면 이 회사가 평소보다
+    싸게 거래되고 있다는 뜻, 1보다 크면 평소보다 비싸다는 뜻이다.<br>
+    <b>acceleration</b> = 최근 1년 영업이익 성장률 ÷ 최근 4년 평균 성장률. 1보다 크면 최근 성장
+    속도가 예전보다 빨라졌다는 뜻이다.<br>
+    <b>ni_1y↓ / cfo_1y↓</b> = 순이익 / 영업활동현금흐름이 1년 전보다 줄었다(마이너스 성장)는 표시다.<br>
+    <b>기간(3m/6m/9m/12m)</b> = 조건을 만족한 시점에 사서 그만큼의 기간을 들고 있었을 때의
+    미래 수익률(forward return) — "그 종목이 이전에 얼마나 올랐는지"가 아니라 "신호가 뜬 뒤
+    앞으로 얼마나 올랐는지"다.<br>
+    <b>raw</b> = 실제로 번 수익률 그대로. <b>alpha</b> = 그 수익률에서 KOSPI200 지수 수익률을 뺀 값
+    — "지수보다 얼마나 더/덜 벌었나"다. <b>n</b> = 이 조건을 만족했던 (종목·분기) 사례 수, 괄호 안은
+    같은 버킷 전체 이벤트 대비 비중(이 조건이 얼마나 자주 나타나는지).
+  </div>
+
+  <h2>벤치마크(KOSPI200) 유의사항</h2>
+  <div class="note">
+    삼성전자·SK하이닉스가 mcap200 시총의 <b>55.5%</b>를 차지한다(삼성전자 2025-07-21~2026-07-21 +282.0%, SK하이닉스 2025-07-21~2026-07-21 +576.7%).
+    이 두 종목이 급등하면 KOSPI200 자체가 밀려 올라가면서, 위 alpha 지표가 실제 손익과 어긋날 수 있다 —
+    <b>항상 raw와 alpha를 같이 보고 판단할 것</b>. 두 종목 모두 위 매수 신호를 사실상 못 잡는다(실적
+    변동성으로 버킷 이탈/가속도 미충족) — 자세한 배경은 docs/large_growth_selection_strategy.md §7.3,
+    docs/large_value_selection_strategy.md §6.2 참고.
+  </div>
+
+  <footer>재현: .venv/bin/python scripts/build_dashboard.py · 신호 정의: docs/large_growth_selection_strategy.md, docs/large_value_selection_strategy.md</footer>
+</div>
+</body>
+</html>
