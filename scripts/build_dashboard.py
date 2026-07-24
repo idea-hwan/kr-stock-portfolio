@@ -34,6 +34,8 @@ from scripts.simulate.signal_common import (
     compute_per_ratio,
     load_pit_eligible_panel,
 )
+from scripts.analysis import provisional_ttm
+from scripts.quarter_terms import shift_term
 
 PANEL_CSV = _ROOT / "data" / "analytics" / "mcap200_factor_panel.csv"
 PIT_DB = _ROOT / "data" / "analytics" / "pit_buckets.db"
@@ -148,6 +150,45 @@ def _num(v) -> float | None:
     return f
 
 
+def apply_preliminary_overlay(latest: pd.DataFrame) -> pd.DataFrame:
+    """공식 재무(정식 분기·반기·사업보고서)가 아직 없는 다음 분기의 잠정실적
+    (data/analytics/preliminary_earnings.db)이 있으면 per_op_20d/per_op_4y를
+    그 값으로 덮어쓴다 — scripts/analysis/provisional_ttm.py 참고.
+
+    ttm_valuation.db/mcap200_factor_panel.csv 는 건드리지 않는다 — 이 오버레이는
+    build_dashboard.py 실행 시점의 인메모리 계산일 뿐이라, 정식 공시가 들어와서
+    패널의 latest ttm_end_term이 다음 분기로 넘어가면 조건이 자동으로 꺼진다.
+    """
+    latest = latest.copy()
+    latest["is_provisional"] = False
+    latest["provisional_asof"] = None
+
+    for idx, row in latest.iterrows():
+        company = row["company"]
+        anchor_term = str(row["ttm_end_term"])
+        next_term = shift_term(anchor_term, 1)
+        prelim = provisional_ttm.preliminary_row(company, next_term)
+        if prelim is None or prelim.get("operating_income_krw") is None:
+            continue
+        try:
+            result = provisional_ttm.build_provisional_per_op(
+                company, anchor_term, next_term, prelim["operating_income_krw"]
+            )
+        except Exception as e:
+            print(f"  [잠정치 오버레이 실패] {company}: {e!r}", file=sys.stderr)
+            continue
+        if result is None:
+            continue
+        if result.get("per_op_20d") is not None:
+            latest.at[idx, "per_op_20d"] = result["per_op_20d"]
+        if result.get("per_op_4y") is not None:
+            latest.at[idx, "per_op_4y"] = result["per_op_4y"]
+        latest.at[idx, "is_provisional"] = True
+        latest.at[idx, "provisional_asof"] = prelim.get("rcept_dt")
+
+    return latest
+
+
 def compute_stock_rows() -> list[dict]:
     panel = pd.read_csv(PANEL_CSV)
     latest = panel.sort_values("ttm_end_term").groupby("company", as_index=False).tail(1).copy()
@@ -178,6 +219,8 @@ def compute_stock_rows() -> list[dict]:
     else:
         for c in ("current_price", "current_date", "trailing_1w", "trailing_1m", "trailing_3m", "trailing_1y"):
             latest[c] = None
+
+    latest = apply_preliminary_overlay(latest)
 
     latest["per_ratio"] = compute_per_ratio(latest)
     latest["accel"] = compute_accel(latest)
@@ -268,6 +311,8 @@ def compute_stock_rows() -> list[dict]:
                 "valuation_tag": valuation_tag,
                 "buy": ",".join(buy_labels) or None,
                 "sell": ",".join(sell_labels) or None,
+                "is_provisional": bool(r.get("is_provisional", False)),
+                "provisional_asof": r.get("provisional_asof") if pd.notna(r.get("provisional_asof")) else None,
             }
         )
     rows.sort(key=lambda x: (x["marcap"] is None, -(x["marcap"] or 0)))
@@ -352,6 +397,7 @@ code { font-family: monospace; background: rgba(255,255,255,0.05); padding: 1px 
 .tag { padding: 2px 6px; border-radius: 4px; font-size: 11px; }
 .tag.pos { background: rgba(63,185,80,0.15); color: var(--pos); }
 .tag.neg { background: rgba(248,81,73,0.15); color: var(--neg); }
+.tag.prelim { background: rgba(210,153,34,0.18); color: #d29922; cursor: help; }
 .pos-text { color: var(--pos); }
 .neg-text { color: var(--neg); }
 .ticker { color: var(--accent); font-weight: 600; font-family: monospace; }
@@ -413,6 +459,7 @@ code { font-family: monospace; background: rgba(255,255,255,0.05); padding: 1px 
       </table>
     </div>
     <p class="meta" id="count"></p>
+    <p class="meta"><span class="tag prelim">잠정</span> 배지 = 정식 공시 전, 잠정실적(공정공시) 영업이익을 앞당겨 P/OP(20d/4y)에 반영. 주식수·액면가는 직전 확정 분기 값을 이월한 근사치. 이익 추세·가속(accel)은 아직 정식 데이터 기준.</p>
   </div>
 
   <div id="logic-view" class="hidden">
@@ -519,7 +566,7 @@ function detailHtml(s) {
       ${infoRow('회사명', s.company)}
       ${infoRow('업종', s.industry || '—')}
       ${infoRow('버킷', s.bucket)}
-      ${infoRow('기준분기', s.ttm_end_term)}
+      ${infoRow('기준분기', s.ttm_end_term + (s.is_provisional ? ' <span class="tag prelim">잠정(' + (s.provisional_asof || '') + ' 공시)</span>' : ''))}
       ${infoRow('현재가(' + (s.current_date || '—') + ')', s.current_price != null ? s.current_price.toLocaleString() + '원' : '—')}
       ${infoRow('밸류에이션 기준일', s.anchor_date || '—')}
       ${infoRow('시총(억원)', fmtWon(s.marcap))}
@@ -579,7 +626,7 @@ function renderTable() {
     html += `<tr onclick="toggleRow(${i})">
       <td class="num sub">${i + 1}</td>
       <td class="ticker">${s.code || '—'}</td>
-      <td>${s.company}</td>
+      <td>${s.company}${s.is_provisional ? ' <span class="tag prelim" title="' + (s.provisional_asof || '') + ' 잠정실적(공정공시) 기준 — 정식 공시 전, 주식수·액면가는 직전 확정 분기 이월">잠정</span>' : ''}</td>
       <td class="${bucketCls}">${s.bucket}</td>
       <td class="num">${fmtWon(s.marcap)}</td>
       <td class="num">${s.current_price != null ? s.current_price.toLocaleString() : '—'}</td>
