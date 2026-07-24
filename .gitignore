@@ -10,3 +10,15 @@ __pycache__/
 *.sqlite
 *.sqlite3
 data/analytics/
+
+# 자동화 실행 로그
+automation/logs/*.log
+
+# update_stock_listing.py가 실행마다 남기는 타임스탬프 백업 — 계속 쌓여서 repo가
+# 커지므로 앞으로 생기는 것만 제외(기존에 커밋된 backups/*.csv는 그대로 유지)
+stock_data/backups/*.csv
+
+# OpenDartReader 고유번호 캐시 — 파일명에 날짜가 박혀 DART 호출마다(주간 잠정실적,
+# 분기 재무) 매번 새 파일(약 8.5MB)이 생긴다. 순수 캐시라 재생성 가능, 매번 커밋하면
+# repo가 계속 불어나므로 앞으로 생기는 것만 제외(기존 커밋분은 그대로 유지)
+docs_cache/opendartreader_corp_codes_*.pkl
