@@ -1,11 +1,16 @@
 # TODO
 
-## 1. 매수 추천 리포트
-확정 신호 4개(성장/밸류 × 매수/매도, docs/large_growth_selection_strategy.md·
-large_value_selection_strategy.md)로 "지금 실제로 사야/팔아야 할 종목"을 정리하는
-리포트. us-stock-portfolio의 docs/buy_signal_reports/*.md 참고. 대시보드 메인
-테이블의 매수/매도 태그(현재 6종목 매수, 13종목 매도 — 2026Q1 기준)를 문장형으로
-정리하는 형태가 될 듯.
+## 1. 매수·매도 신호 리포트 — 프롬프트 준비 완료 (2026-07-27), 첫 실행 대기
+us-stock-portfolio의 방식(`automation/prompts/weekly_buy_signal_report_prompt.md`)을
+리뷰해서 그대로 이식 — `automation/prompts/weekly_signal_report_prompt.md`.
+`docs/index.html`의 `buy`/`sell` 태그 종목을 숫자 1차 스크리닝 → WebSearch 뉴스
+검증 → 최종 후보/고위험/제외로 분류해 `docs/signal_reports/YYYY-MM-DD.md`에 저장.
+US와 다른 점: 매수뿐 아니라 매도 신호도 같은 4단계로 검증(사용자 확인), 버킷별로
+매수 공식이 다름(성장=저평가+가속, 밸류=저평가+이익품질 — 매도는 공통).
+
+완전 수동 워크플로우 — 자동 스케줄러 아님, 커밋·푸시 전 사람이 반드시 검토
+(us-stock-portfolio와 동일 원칙). 다음 할 일: 사용자가 요청하면 프롬프트대로
+실행해서 첫 회차 리포트 작성 → 몇 주 수동으로 발행하며 지켜보기.
 
 ## 2. 스케줄러 실제 가동 — 완료 (2026-07-27)
 `automation/kr_stock_scheduler.py` 하나로 세 트랙 묶어서
