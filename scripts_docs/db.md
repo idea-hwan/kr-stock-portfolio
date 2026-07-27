@@ -143,8 +143,10 @@ data/
 
 ### 3) 신규 상장 등 리스트에만 있는 종목 백필
 
-`stock.csv` 대비 `stock_listing.csv`에만 있는 코드 목록은 `stock_data/new_codes_since_stock_csv.txt`에 둡니다.  
-전체 분기를 다시 돌리지 않고, **해당 코드만** 각 분기 DB에 채웁니다.
+`stock_data/new_codes_since_stock_csv.txt`에 신규 코드 목록을 둡니다 — `update_stock_listing.py`(A1)가
+실행 때마다 이전 `stock_listing.csv` 대비 새로 생긴 코드를 자동으로 이 파일에 append(dedup)한다(2026-07-27 추가).
+전체 분기를 다시 돌리지 않고, **해당 코드만** 각 분기 DB에 채웁니다.  
+실제 백필 실행(`backfill_new_listing.py`)은 자동화하지 않고 사람이 이 파일을 보고 판단해서 수동으로 돌린다.
 
 - **기본 구간:** `--start-term` / `--end-term` 생략 시 **2023Q1 ~ 2025Q4**(약 3년·신규 종목에 맞춤). 더 긴 과거가 필요하면 `--start-term 2015Q4` 등으로 지정.
 - **스팩 제외:** 회사명·부서 기준 스팩은 `stock_db` 필터와 동일하게 백필 대상에서 제외된다.

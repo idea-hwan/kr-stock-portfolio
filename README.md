@@ -4,6 +4,8 @@ DART·KRX 상장 리스트를 기준으로 **분기별 원천 SQLite**를 쌓고
 
 모든 명령은 **프로젝트 루트**에서 실행합니다. Python은 `**.venv/bin/python scripts/.../foo.py`** 형태를 쓰면 됩니다(실행 비트 없이 `foo.py`만 치면 `permission denied`가 날 수 있음).
 
+**자동화 스케줄러(가격·재무 데일리/분기 자동 갱신) 실행·스케줄·제약:** [automation_usage.md](automation_usage.md)
+
 ---
 
 ## 사전 준비
@@ -73,14 +75,14 @@ DART를 다시 호출하지 않고, **이미 있는 분기 SQLite**와 (필요 �
 .venv/bin/python scripts/snapshot_export/export_bucket_stock_csv.py --bucket all
 ```
 
-단일 종목 터미널 확인: `scripts/snapshot_export/cyclical_snapshot_terminal.py` (전체 CSV는 위 `export_bucket_stock_csv`만 사용). 스크립트 색인: [usdge.md](usdge.md).
+단일 종목 터미널 확인: `scripts/snapshot_export/cyclical_snapshot_terminal.py` (전체 CSV는 위 `export_bucket_stock_csv`만 사용). 스크립트 색인: [usage.md](usage.md).
 
 ---
 
 ## 그 밖의 레일
 
 - **배당·분배 관점(C)** 은 B(재무 TTM·PER)와 목적이 다릅니다. 절차는 [scripts_docs/db_operations.md](scripts_docs/db_operations.md) 「C — 분배 기준 벨류에이션」.
-- **스크립트 전체 목록·한 줄 설명:** [usdge.md](usdge.md)
+- **스크립트 전체 목록·한 줄 설명:** [usage.md](usage.md)
 
 ---
 
@@ -89,6 +91,7 @@ DART를 다시 호출하지 않고, **이미 있는 분기 SQLite**와 (필요 �
 
 | 문서                                                           | 내용                               |
 | ------------------------------------------------------------ | -------------------------------- |
+| [automation_usage.md](automation_usage.md)                                  | 자동화 스케줄러(`automation/`) 실행·스케줄·제약 |
 | [scripts_docs/db_operations.md](scripts_docs/db_operations.md)               | A/B/C 사용법, 명령 예시                 |
 | [scripts_docs/db.md](scripts_docs/db.md)                                     | 경로·스키마·참조 관계                     |
 | [scripts_docs/ttm_valuation.md](scripts_docs/ttm_valuation.md)               | `populate_ttm_valuation` 옵션·갭 점검 |

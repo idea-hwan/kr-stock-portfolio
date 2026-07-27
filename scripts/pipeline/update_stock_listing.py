@@ -12,6 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 STOCK_DATA_DIR = BASE_DIR / "stock_data"
 TARGET_PATH = STOCK_DATA_DIR / "stock_listing.csv"
 BACKUP_DIR = STOCK_DATA_DIR / "backups"
+NEW_CODES_PATH = STOCK_DATA_DIR / "new_codes_since_stock_csv.txt"
 
 
 def _normalize_listing(df: pd.DataFrame) -> pd.DataFrame:
@@ -61,6 +62,23 @@ def restore_backup(backup_path: Path) -> None:
         shutil.copy2(backup_path, TARGET_PATH)
 
 
+def record_new_codes(added: list[str]) -> int:
+    """신규 코드를 new_codes_since_stock_csv.txt 에 누적(dedup) — A4(backfill_new_listing.py)
+    입력 파일. 실제 백필 실행은 사람이 판단해서 수동으로 한다(자동 실행 안 함)."""
+    if not added:
+        return 0
+    existing: set[str] = set()
+    if NEW_CODES_PATH.exists():
+        existing = {
+            line.strip()
+            for line in NEW_CODES_PATH.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        }
+    merged = sorted(existing | set(added))
+    NEW_CODES_PATH.write_text("\n".join(merged) + "\n", encoding="utf-8")
+    return len(merged)
+
+
 def update_stock_listing() -> None:
     print("Fetching latest KRX listing from FinanceDataReader...")
     latest_raw = fdr.StockListing("KRX")
@@ -94,6 +112,18 @@ def update_stock_listing() -> None:
         print("  sample added:", ", ".join(added[:10]))
     if removed:
         print("  sample removed:", ", ".join(removed[:10]))
+
+    if old_codes:
+        total_pending = record_new_codes(added)
+        if added:
+            print(
+                f">>> {NEW_CODES_PATH.name} 에 신규 코드 {len(added)}개 추가 "
+                f"(누적 대기 {total_pending}개) — 필요하면 backfill_new_listing.py 직접 실행 (자동 실행 안 됨)"
+            )
+    elif added:
+        print(
+            f"- (최초 실행이라 {NEW_CODES_PATH.name} 기록 생략 — 전 종목이 added로 잡히는 걸 방지)"
+        )
 
 
 if __name__ == "__main__":

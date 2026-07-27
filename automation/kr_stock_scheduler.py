@@ -4,10 +4,10 @@
 (us-stock-portfolio의 automation/scheduler_data_collection.py 와 동일 원칙).
 
 실행:
-    caffeinate -i .venv/bin/python automation/scheduler.py
+    caffeinate -i .venv/bin/python automation/kr_stock_scheduler.py
 
 동작 (3개 잡):
-  - 매일 KST 18:00(장 마감 15:30 이후 여유): daily_update.sh
+  - 매일 KST 16:00(장 마감 15:30 이후 여유): daily_update.sh
     (가격 → 팩터 패널 → PIT 버킷 → 대시보드 → 변경 있으면 git push)
   - 매일 KST 09:00: quarterly_financial_update.sh (정식 분기·반기·사업보고서,
     인자 없이 — automation/quarterly_term_window.py의 formal_target_term()이
@@ -15,7 +15,7 @@
     그날 늦게 내는 곳을 놓칠 수 있어 하루 늦춰서 확인한다). 요일이 아니라
     날짜(마감일 5/15·8/15·11/15·3/31 기준 +1/+8일)로 트리거되므로 매일
     체크해야 한다 — 그 날짜가 항상 월요일인 건 아니기 때문.
-  - 매주 월요일 KST 09:00: preliminary_earnings_update.sh (잠정실적 얼리
+  - 매주 토요일 KST 12:00: preliminary_earnings_update.sh (잠정실적 얼리
     시그널, preliminary_target_term()의 넓은 창 — 분기 마감 전 회사마다
     흩어져서 올라오는 공시를 매주 다시 훑어서 채운다).
 
@@ -49,15 +49,15 @@ QUARTERLY_SCRIPT = ROOT / "automation" / "quarterly_financial_update.sh"
 PRELIMINARY_SCRIPT = ROOT / "automation" / "preliminary_earnings_update.sh"
 LOG_FILE = ROOT / "automation" / "logs" / "scheduler.log"
 
-DAILY_HOUR = 18
+DAILY_HOUR = 16
 DAILY_MINUTE = 0
 
 QUARTERLY_HOUR = 9
 QUARTERLY_MINUTE = 0
 
-PRELIMINARY_WEEKDAY = 0  # 월요일 (월=0 ... 일=6)
-PRELIMINARY_HOUR = 9
-PRELIMINARY_MINUTE = 5  # quarterly와 겹치지 않게 5분 뒤
+PRELIMINARY_WEEKDAY = 5  # 토요일 (월=0 ... 일=6)
+PRELIMINARY_HOUR = 12
+PRELIMINARY_MINUTE = 0
 
 CHECK_INTERVAL_SEC = 20
 
@@ -83,7 +83,7 @@ def main() -> None:
     log(
         f"스케줄러 시작 — 매일 KST {DAILY_HOUR:02d}:{DAILY_MINUTE:02d} daily_update, "
         f"매일 KST {QUARTERLY_HOUR:02d}:{QUARTERLY_MINUTE:02d} quarterly_financial_update(마감일+1/+8일에만 실행), "
-        f"매주 월요일 KST {PRELIMINARY_HOUR:02d}:{PRELIMINARY_MINUTE:02d} preliminary_earnings_update. "
+        f"매주 토요일 KST {PRELIMINARY_HOUR:02d}:{PRELIMINARY_MINUTE:02d} preliminary_earnings_update. "
         "Ctrl+C로 종료."
     )
     last_daily_date = None

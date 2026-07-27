@@ -65,7 +65,8 @@
    - 결과: `stock_data/stock_listing.csv` (백업: `stock_data/backups/`)
 
 2. **`stock_data/new_codes_since_stock_csv.txt`**  
-   `stock.csv` 대비 `stock_listing`에만 있는 코드로 다시 맞춘다.
+   위 1번 실행 때 이전 `stock_listing.csv` 대비 신규 코드가 있으면 자동으로 append(dedup)된다.
+   실행 로그(`>>> 신규 상장 종목 대기 N개 ...`)에 뜨면 참조해서 `backfill_new_listing.py`를 직접 돌릴지 판단.
 
 3. **OPENDART** — `.env` 키, 당일·일 한도 확인
 

@@ -101,6 +101,11 @@ SCOPE_LABEL="전종목"
     echo "--- A1: 상장 리스트 갱신 ---"
     "$PY" scripts/pipeline/update_stock_listing.py
 
+    if [[ -s stock_data/new_codes_since_stock_csv.txt ]]; then
+        N_NEW="$(grep -c . stock_data/new_codes_since_stock_csv.txt || true)"
+        echo ">>> 신규 상장 종목 대기 ${N_NEW}개 (stock_data/new_codes_since_stock_csv.txt) — 필요하면 backfill_new_listing.py 직접 실행 (자동 실행 안 됨)"
+    fi
+
     echo "--- 1-x: mcap_top_200.csv 스냅샷 갱신 ---"
     "$PY" scripts/pipeline/export_mcap_top_200.py
 
