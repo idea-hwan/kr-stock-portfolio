@@ -21,7 +21,9 @@ import sqlite3
 import sys
 from pathlib import Path
 
+import markdown
 import pandas as pd
+from bs4 import BeautifulSoup
 
 _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
@@ -43,6 +45,7 @@ PRICES_DB = _ROOT / "data" / "analytics" / "prices.db"
 MCAP_CSV = _ROOT / "stock_data" / "mcap_top_200.csv"
 INDUSTRY_CSV = _ROOT / "data" / "analytics" / "industry_map.csv"
 CURRENT_PRICE_CSV = _ROOT / "data" / "analytics" / "current_prices.csv"
+REPORTS_DIR = _ROOT / "docs" / "signal_reports"
 OUT_HTML = _ROOT / "docs" / "index.html"
 
 MEGA_CAP_NAMES = ("삼성전자", "SK하이닉스")
@@ -348,6 +351,64 @@ def _signal_card(title: str, plain: str, formula: str, sig: dict, horizons: list
     """
 
 
+# ── 매수·매도 신호 리포트 (주간) ────────────────────────────────────────────────
+
+def _wrap_report_sections(html: str) -> str:
+    """h2(매수/매도 신호)와 그 아래 내용을 판단로직 뷰와 같은 .card 박스로 감싼다."""
+    soup = BeautifulSoup(html, "html.parser")
+    elements = list(soup.contents)
+    out = BeautifulSoup("", "html.parser")
+    section = None
+    for el in elements:
+        if getattr(el, "name", None) == "h2":
+            if section is not None:
+                out.append(section)
+            section = out.new_tag("div", **{"class": "card report-section"})
+        if section is not None:
+            section.append(el)
+        else:
+            out.append(el)
+    if section is not None:
+        out.append(section)
+    return str(out)
+
+
+def load_signal_reports() -> list[dict]:
+    """docs/signal_reports/YYYY-MM-DD.md → 최신순 정렬된 [{date, html}, ...]."""
+    if not REPORTS_DIR.exists():
+        return []
+    reports = []
+    for path in sorted(REPORTS_DIR.glob("*.md"), reverse=True):
+        text = path.read_text(encoding="utf-8")
+        body_html = markdown.markdown(text, extensions=["tables"])
+        body_html = _wrap_report_sections(body_html)
+        reports.append({"date": path.stem, "html": body_html})
+    return reports
+
+
+def render_reports_panel(reports: list[dict]) -> str:
+    """리포트 선택 드롭다운 + 리포트별 hidden div 마크업."""
+    if not reports:
+        return '<p class="meta">아직 저장된 주간 리포트가 없습니다.</p>'
+
+    options = "\n".join(
+        f'<option value="{r["date"]}"{" selected" if i == 0 else ""}>{r["date"]}</option>'
+        for i, r in enumerate(reports)
+    )
+    docs = "\n".join(
+        f'<div class="report-body" data-date="{r["date"]}" style="display:{"block" if i == 0 else "none"}">'
+        f'{r["html"]}</div>'
+        for i, r in enumerate(reports)
+    )
+    return f'''<div class="report-select-row">
+  <label for="report-date-select">주차 선택:</label>
+  <select id="report-date-select" onchange="showReportDate(this.value)">
+{options}
+  </select>
+</div>
+{docs}'''
+
+
 HTML_TEMPLATE = r"""<!doctype html>
 <html lang="ko">
 <head>
@@ -413,6 +474,27 @@ code { font-family: monospace; background: rgba(255,255,255,0.05); padding: 1px 
 .dtbl th, .dtbl td { padding: 3px 4px; }
 .dtbl th:first-child, .dtbl td:first-child { text-align: left; color: var(--sub); }
 .hidden { display: none; }
+
+.report-select-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+.report-select-row label { color: var(--sub); font-size: 12px; }
+.report-select-row select { background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  padding: 5px 10px; border-radius: 4px; font-family: inherit; font-size: 12px; cursor: pointer; }
+.report-select-row select:focus { outline: none; border-color: var(--accent); }
+.report-body { font-size: 13px; line-height: 1.7; max-width: 920px; }
+.report-body h1 { font-size: 16px; font-weight: 700; margin: 0 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.report-body .report-section { margin: 0 0 20px; }
+.report-body .report-section h2 { font-size: 14px; color: var(--accent); margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.report-body h3 { font-size: 12.5px; font-weight: 700; margin: 16px 0 8px; }
+.report-body p { margin: 0 0 12px; }
+.report-body strong { color: var(--text); font-weight: 700; }
+.report-body em { color: var(--sub); font-style: italic; }
+.report-body a { color: var(--accent); text-decoration: underline; }
+.report-body hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+.report-body table { border-collapse: collapse; width: 100%; margin: 8px 0 16px; font-size: 12px; }
+.report-body th { background: var(--panel); color: var(--sub); font-weight: 500; padding: 6px 10px;
+  border-bottom: 1px solid var(--border); text-align: left; }
+.report-body td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.6; text-align: left; }
+.report-body ul, .report-body ol { margin: 0 0 12px 20px; }
 </style>
 </head>
 <body>
@@ -429,6 +511,7 @@ code { font-family: monospace; background: rgba(255,255,255,0.05); padding: 1px 
     <button data-signal="sell" class="sfilter">매도 신호만</button>
     <input type="text" id="search" placeholder="종목명 검색...">
     <span class="spacer"></span>
+    <button id="toggle-reports">매수·매도 신호 리포트</button>
     <button id="toggle-logic">판단로직 보기</button>
   </div>
 
@@ -500,14 +583,16 @@ code { font-family: monospace; background: rgba(255,255,255,0.05); padding: 1px 
       삼성전자·SK하이닉스가 mcap200 시총의 <b>__MEGA_WEIGHT__%</b>를 차지한다(__MEGA_RET_1__, __MEGA_RET_2__).
       이 두 종목이 급등하면 KOSPI200 자체가 밀려 올라가면서, 위 alpha 지표가 실제 손익과 어긋날 수 있다 —
       <b>항상 raw와 alpha를 같이 보고 판단할 것</b>. 두 종목 모두 위 매수 신호를 사실상 못 잡는다(실적
-      변동성으로 버킷 이탈/가속도 미충족) — 자세한 배경은 docs/large_growth_selection_strategy.md §7.3,
-      docs/large_value_selection_strategy.md §6.2 참고.
+      변동성으로 버킷 이탈/가속도 미충족).
     </div>
   </div>
 
-  <footer>
-    재현: <code>build_dashboard.py</code> · 신호 정의: docs/large_growth_selection_strategy.md, docs/large_value_selection_strategy.md<br>
-    현재가·수익률·업종은 별도 캐시(<code>current_prices.csv</code>·<code>industry_map.csv</code>) — 빌드마다 재조회 안 함. 최신화: <code>build_current_prices.py</code>(매일)·<code>build_industry_map.py</code>(가끔)
+  <div id="reports-view" class="hidden">
+    __REPORTS_HTML__
+  </div>
+
+  <footer id="footer">
+    현재가·수익률·업종 데이터는 별도로 캐시돼 매번 다시 조회하지 않는다 — 현재가·수익률은 매일, 업종 정보는 수시 갱신.
   </footer>
 </div>
 <script>
@@ -685,14 +770,30 @@ document.querySelectorAll('#tbl thead th[data-key]').forEach(th => {
   });
 });
 updateSortIndicator();
-document.getElementById('toggle-logic').addEventListener('click', () => {
+function showView(name) {
   const main = document.getElementById('main-view');
   const logic = document.getElementById('logic-view');
-  const showingLogic = !logic.classList.contains('hidden');
-  logic.classList.toggle('hidden', showingLogic);
-  main.classList.toggle('hidden', !showingLogic);
-  document.getElementById('toggle-logic').textContent = showingLogic ? '판단로직 보기' : '종목 테이블 보기';
+  const reports = document.getElementById('reports-view');
+  main.classList.toggle('hidden', name !== 'main');
+  logic.classList.toggle('hidden', name !== 'logic');
+  reports.classList.toggle('hidden', name !== 'reports');
+  document.getElementById('footer').classList.toggle('hidden', name === 'reports');
+  document.getElementById('toggle-logic').textContent = name === 'logic' ? '종목 테이블 보기' : '판단로직 보기';
+  document.getElementById('toggle-reports').textContent = name === 'reports' ? '종목 테이블 보기' : '매수·매도 신호 리포트';
+}
+document.getElementById('toggle-logic').addEventListener('click', () => {
+  const logic = document.getElementById('logic-view');
+  showView(logic.classList.contains('hidden') ? 'logic' : 'main');
 });
+document.getElementById('toggle-reports').addEventListener('click', () => {
+  const reports = document.getElementById('reports-view');
+  showView(reports.classList.contains('hidden') ? 'reports' : 'main');
+});
+function showReportDate(dateStr) {
+  document.querySelectorAll('.report-body').forEach(el => {
+    el.style.display = el.dataset.date === dateStr ? 'block' : 'none';
+  });
+}
 
 renderTable();
 </script>
@@ -701,8 +802,9 @@ renderTable();
 """
 
 
-def generate_html(g: dict, v: dict, bench: dict, stocks: list[dict]) -> str:
+def generate_html(g: dict, v: dict, bench: dict, stocks: list[dict], reports: list[dict]) -> str:
     html = HTML_TEMPLATE
+    html = html.replace("__REPORTS_HTML__", render_reports_panel(reports))
 
     from datetime import datetime, timezone
 
@@ -788,11 +890,12 @@ def main() -> int:
     v = compute_value_signals()
     bench = compute_benchmark_note()
     stocks = compute_stock_rows()
+    reports = load_signal_reports()
 
-    html = generate_html(g, v, bench, stocks)
+    html = generate_html(g, v, bench, stocks, reports)
     OUT_HTML.parent.mkdir(parents=True, exist_ok=True)
     OUT_HTML.write_text(html, encoding="utf-8")
-    print(f"Wrote {OUT_HTML} ({len(html):,} bytes, {len(stocks)}종목)")
+    print(f"Wrote {OUT_HTML} ({len(html):,} bytes, {len(stocks)}종목, 주간 리포트 {len(reports)}건)")
     return 0
 
 

@@ -5,6 +5,7 @@ charset-normalizer==3.4.7
 finance-datareader==0.9.110
 idna==3.11
 lxml==6.0.2
+markdown==3.10.2
 narwhals==2.18.1
 numpy==2.2.6
 OpenDartReader==0.2.3
