@@ -671,12 +671,12 @@ function detailHtml(s) {
         <thead><tr><th></th><th>현재</th><th>20일</th><th>4년</th></tr></thead>
         <tbody>
           ${row3('P/NI', s.per_ni_now, s.per_ni_20d, s.per_ni_4y)}
-          ${row3('P/OP', s.per_op_now, s.per_op_20d, s.per_op_4y)}
+          ${row3('P/OP' + (s.is_provisional ? ' <span class="tag prelim" title="' + (s.provisional_asof || '') + ' 잠정실적 기준">잠정</span>' : ''), s.per_op_now, s.per_op_20d, s.per_op_4y)}
           ${row3('P/FCF', s.per_fcf_now, s.per_fcf_20d, s.per_fcf_4y)}
         </tbody>
       </table>
       <h4>TTM 재무 (주당)</h4>
-      ${infoRow('영업이익', fmtWonVal(s.op_ps))}
+      ${infoRow('영업이익' + (s.is_provisional ? ' <span class="tag prelim" title="' + (s.provisional_asof || '') + ' 잠정실적 기준">잠정</span>' : ''), fmtWonVal(s.op_ps))}
       ${infoRow('순이익', fmtWonVal(s.ni_ps))}
       ${infoRow('영업현금흐름', fmtWonVal(s.cfo_ps))}
       ${infoRow('FCF', fmtWonVal(s.fcf_ps))}
