@@ -155,8 +155,11 @@ def _num(v) -> float | None:
 
 def apply_preliminary_overlay(latest: pd.DataFrame) -> pd.DataFrame:
     """공식 재무(정식 분기·반기·사업보고서)가 아직 없는 다음 분기의 잠정실적
-    (data/analytics/preliminary_earnings.db)이 있으면 per_op_20d/per_op_4y를
+    (data/analytics/preliminary_earnings.db)이 있으면 per_op_20d/per_op_4y/op_ps를
     그 값으로 덮어쓴다 — scripts/analysis/provisional_ttm.py 참고.
+    op_ps도 함께 덮어써야 "현재" P/OP(per_op_now)가 20일/4년 배수와 같은 잠정 TTM
+    영업이익 기준을 쓰게 된다 — 안 그러면 "현재"만 옛 확정분기 기준으로 남아 배수가
+    서로 어긋난다.
 
     ttm_valuation.db/mcap200_factor_panel.csv 는 건드리지 않는다 — 이 오버레이는
     build_dashboard.py 실행 시점의 인메모리 계산일 뿐이라, 정식 공시가 들어와서
@@ -186,6 +189,8 @@ def apply_preliminary_overlay(latest: pd.DataFrame) -> pd.DataFrame:
             latest.at[idx, "per_op_20d"] = result["per_op_20d"]
         if result.get("per_op_4y") is not None:
             latest.at[idx, "per_op_4y"] = result["per_op_4y"]
+        if result.get("op_ps_provisional") is not None:
+            latest.at[idx, "op_ps"] = result["op_ps_provisional"]
         latest.at[idx, "is_provisional"] = True
         latest.at[idx, "provisional_asof"] = prelim.get("rcept_dt")
 
