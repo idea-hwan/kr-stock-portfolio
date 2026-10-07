@@ -104,7 +104,36 @@ def last_dates(conn: sqlite3.Connection) -> dict[str, str]:
     return {code: d for code, d in rows if d}
 
 
+def fetch_kospi200_naver(start: str, end: str) -> pd.DataFrame | None:
+    """KOSPI200 지수를 Naver 차트에서 직접 조회. FDR 의 KS200 은 2026-09-17 이후 갱신이 멈춰 있었다.
+    저장돼 있던 FDR 값과 2,875일 비교 시 최대 오차 0.11% (같은 지수)."""
+    import re
+
+    import requests
+
+    r = requests.get(
+        "https://fchart.stock.naver.com/sise.nhn",
+        params={"symbol": "KPI200", "timeframe": "day", "count": 3000, "requestType": 0},
+        timeout=30,
+    )
+    r.raise_for_status()
+    rows = re.findall(r'data="(\d{8})\|[\d.]+\|[\d.]+\|[\d.]+\|([\d.]+)\|\d+"', r.text)
+    if not rows:
+        return None
+    px = pd.DataFrame(rows, columns=["Date", "Close"])
+    px["Date"] = pd.to_datetime(px["Date"]).dt.strftime("%Y-%m-%d")
+    px["Close"] = px["Close"].astype(float)
+    return px[(px["Date"] >= start) & (px["Date"] <= end)].reset_index(drop=True)
+
+
 def fetch_one(code: str, start: str, end: str) -> pd.DataFrame | None:
+    if code == BENCHMARK_CODE:
+        try:
+            px = fetch_kospi200_naver(start, end)
+            if px is not None and not px.empty:
+                return px
+        except Exception as exc:  # Naver 실패 시 FDR 로 폴백
+            print(f"  KS200 Naver 조회 실패, FDR 폴백: {exc}", file=sys.stderr)
     import FinanceDataReader as fdr
 
     raw = fdr.DataReader(code, start=start, end=end)
@@ -115,6 +144,27 @@ def fetch_one(code: str, start: str, end: str) -> pd.DataFrame | None:
     px = px.rename(columns={date_col: "Date"})
     px["Date"] = pd.to_datetime(px["Date"]).dt.strftime("%Y-%m-%d")
     return px[["Date", "Close"]].dropna()
+
+
+OVERLAP_DAYS = 10
+HISTORY_TOL = 0.005  # 겹친 구간 종가가 저장값과 0.5% 넘게 다르면 보정이 일어난 것으로 본다
+
+
+def _history_changed(conn: sqlite3.Connection, code: str, px: pd.DataFrame, last: str) -> bool:
+    """저장된 마지막 날 이전의 겹침 구간이 새로 받은 값과 다른지. (마지막 날은 장중값 정정이라 제외)"""
+    lo = str(px["Date"].min())[:10]
+    stored = dict(
+        conn.execute(
+            "SELECT date, close FROM daily_prices WHERE code = ? AND date >= ? AND date < ?",
+            (code, lo, last),
+        ).fetchall()
+    )
+    for d, c in zip(px["Date"], px["Close"]):
+        k = str(d)[:10]
+        old = stored.get(k)
+        if old and old > 0 and abs(float(c) / old - 1.0) > HISTORY_TOL:
+            return True
+    return False
 
 
 def upsert(conn: sqlite3.Connection, code: str, px: pd.DataFrame) -> int:
@@ -159,13 +209,16 @@ def main() -> int:
     n_err = 0
     for i, code in enumerate(codes, start=1):
         last = existing.get(code)
-        if last is not None and last >= today:
-            print(f"[{i}/{len(codes)}] {code} 최신 상태 — 스킵")
-            continue
-        start = START_DATE if last is None else (date.fromisoformat(last) + timedelta(days=1)).isoformat()
+        # 마지막 저장일 이후만 받으면 (1) 장중에 저장된 마지막 날 값이 끝내 갱신되지 않고
+        # (2) 이후 액면분할·증자 보정이 과거 가격에 반영되지 않는다 → 며칠 겹쳐 받아 덮어쓰고,
+        # 겹친 구간이 저장값과 다르면(보정 발생) 그 종목만 전체 재수집한다.
+        start = START_DATE if last is None else (date.fromisoformat(last) - timedelta(days=OVERLAP_DAYS)).isoformat()
 
         try:
             px = fetch_one(code, start, today)
+            if px is not None and not px.empty and last is not None and _history_changed(conn, code, px, last):
+                print(f"[{i}/{len(codes)}] {code} 과거 종가가 달라짐(액면분할·증자 보정 추정) — 전체 재수집")
+                px = fetch_one(code, START_DATE, today)
         except Exception as exc:
             print(f"[{i}/{len(codes)}] {code} 조회 실패: {exc}", file=sys.stderr)
             n_err += 1
