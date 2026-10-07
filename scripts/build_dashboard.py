@@ -51,6 +51,11 @@ OUT_HTML = _ROOT / "docs" / "index.html"
 
 MEGA_CAP_NAMES = ("삼성전자", "SK하이닉스")
 
+# 성장 매수 신호는 2026-10-07 재검증(Q2·Q3 TTM 오류 수정 후 데이터)에서 무너졌다:
+# 전체 alpha -1.5%/-3.5%, 후반부(2023Q3~) baseline 대비 -5.1%p, 그리드 재탐색은 train→test 상관 -0.08.
+# 라벨은 내지 않고(False), 판단로직 카드에는 기록용 수치만 남긴다. 자세한 근거: docs/large_growth_selection_strategy.md
+GROWTH_BUY_ENABLED = False
+
 
 # ── 방법론 카드용 백테스트 계산 (기존 v1) ──────────────────────────────────────
 
@@ -234,13 +239,13 @@ def compute_stock_rows() -> list[dict]:
     latest["per_ratio"] = compute_per_ratio(latest)
     latest["accel"] = compute_accel(latest)
 
+    share_notes = load_share_notes(str(latest["ttm_end_term"].max()))
+
     rows: list[dict] = []
     for _, r in latest.iterrows():
         is_growth = r["growth_pit16"] == 1
         is_value = r["value_pit16"] == 1
         bucket_labels = []
-    share_notes = load_share_notes(str(latest["ttm_end_term"].max()))
-
         if is_growth:
             bucket_labels.append("성장")
         if is_value:
@@ -261,7 +266,7 @@ def compute_stock_rows() -> list[dict]:
 
         buy_labels, sell_labels = [], []
         if is_growth:
-            if per_ratio is not None and 0.5 <= per_ratio < 1.0 and accel is not None and 2 <= accel < 5:
+            if GROWTH_BUY_ENABLED and per_ratio is not None and 0.5 <= per_ratio < 1.0 and accel is not None and 2 <= accel < 5:
                 buy_labels.append("성장매수")
             if sell_cond:
                 sell_labels.append("성장매도")
@@ -322,12 +327,12 @@ def compute_stock_rows() -> list[dict]:
                 "valuation_tag": valuation_tag,
                 "buy": ",".join(buy_labels) or None,
                 "sell": ",".join(sell_labels) or None,
+                "share_note": share_notes.get(r["company"]),
                 "is_provisional": bool(r.get("is_provisional", False)),
                 "provisional_asof": r.get("provisional_asof") if pd.notna(r.get("provisional_asof")) else None,
             }
         )
     rows.sort(key=lambda x: (x["marcap"] is None, -(x["marcap"] or 0)))
-                "share_note": share_notes.get(r["company"]),
     return rows
 
 
@@ -382,11 +387,6 @@ def _wrap_report_sections(html: str) -> str:
     return str(out)
 
 
-def load_signal_reports() -> list[dict]:
-    """docs/signal_reports/YYYY-MM-DD.md → 최신순 정렬된 [{date, html}, ...]."""
-    if not REPORTS_DIR.exists():
-        return []
-    reports = []
 def load_share_notes(latest_term: str) -> dict[str, str]:
     """주식수 변동(액면가 불변) 사건 주석 — 최근 16분기(4년 평균 PER 구간) 안의 사건만.
     무상증자는 과거 주당값을 소급 보정했다는 표시, 무상+유상 혼재·불명·감소는 보정하지 않아
@@ -414,6 +414,11 @@ def load_share_notes(latest_term: str) -> dict[str, str]:
     return {c: " / ".join(v) for c, v in notes.items()}
 
 
+def load_signal_reports() -> list[dict]:
+    """docs/signal_reports/YYYY-MM-DD.md → 최신순 정렬된 [{date, html}, ...]."""
+    if not REPORTS_DIR.exists():
+        return []
+    reports = []
     for path in sorted(REPORTS_DIR.glob("*.md"), reverse=True):
         text = path.read_text(encoding="utf-8")
         body_html = markdown.markdown(text, extensions=["tables"])
@@ -599,6 +604,15 @@ code { font-family: monospace; background: rgba(255,255,255,0.05); padding: 1px 
     <p class="meta">아래 표의 수익률은 전부 <b>미래(forward) 수익률</b>이다 — 이 조건을 만족한 시점에 실제로
     샀다고 가정하고, 그 이후 3/6/9/12개월 동안 얼마를 벌었는지를 계산한 것이다(과거 추세가 아니다).</p>
 
+    <div class="note">
+      <b>신호 검증 상태(2026-10-07 재검증)</b> — 기간을 전반부(~2023Q2)와 후반부(2023Q3~)로 나눠
+      같은 공식이 양쪽에서 통하는지 봤다. <b>밸류 매수</b>는 후반부에도 같은 기간 전체 평균보다 앞서 유지.
+      <b>성장 매수</b>는 후반부에 전체 평균보다 못해 중단. <b>매도 신호 둘</b>은 후반부에서 방향은 맞지만
+      전반부에는 효과가 없었고 표본이 후반부에 몰려 있어 시장 국면 영향과 분리되지 않는다.
+      신호 조합을 다시 탐색(그리드)해도 전반부에서 고른 조합이 후반부에서 이어지지 않았다.
+      자세한 내용은 <code>docs/large_*_selection_strategy.md</code>.
+    </div>
+
     <h2>용어</h2>
     <div class="note gloss">
       <b>per_ratio</b> = 최근 20일 평균 PER ÷ 최근 4년 평균 PER. 1보다 작으면 이 회사가 평소보다
@@ -618,8 +632,8 @@ code { font-family: monospace; background: rgba(255,255,255,0.05); padding: 1px 
     <div class="note">
       삼성전자·SK하이닉스가 mcap200 시총의 <b>__MEGA_WEIGHT__%</b>를 차지한다(__MEGA_RET_1__, __MEGA_RET_2__).
       이 두 종목이 급등하면 KOSPI200 자체가 밀려 올라가면서, 위 alpha 지표가 실제 손익과 어긋날 수 있다 —
-      <b>항상 raw와 alpha를 같이 보고 판단할 것</b>. 두 종목 모두 위 매수 신호를 사실상 못 잡는다(실적
-      변동성으로 버킷 이탈/가속도 미충족).
+      <b>항상 raw와 alpha를 같이 보고 판단할 것</b>. 두 종목이 신호 대상(16분기 연속 흑자 등 버킷 조건)에서
+      빠지는 시기에도 벤치마크는 이 두 종목이 좌우한다.
     </div>
   </div>
 
@@ -687,6 +701,7 @@ function detailHtml(s) {
       ${infoRow('회사명', s.company)}
       ${infoRow('업종', s.industry || '—')}
       ${infoRow('버킷', s.bucket)}
+      ${s.share_note ? infoRow('주식수 변동', '<span class="neg-text">' + s.share_note + '</span>') : ''}
       ${infoRow('기준분기', s.ttm_end_term + (s.is_provisional ? ' <span class="tag prelim">잠정(' + (s.provisional_asof || '') + ' 공시)</span>' : ''))}
       ${infoRow('현재가(' + (s.current_date || '—') + ')', s.current_price != null ? s.current_price.toLocaleString() + '원' : '—')}
       ${infoRow('밸류에이션 기준일', s.anchor_date || '—')}
@@ -701,7 +716,6 @@ function detailHtml(s) {
       <table class="dtbl">
         <thead><tr><th></th><th>현재</th><th>20일</th><th>4년</th></tr></thead>
         <tbody>
-      ${s.share_note ? infoRow('주식수 변동', '<span class="neg-text">' + s.share_note + '</span>') : ''}
           ${row3('P/NI', s.per_ni_now, s.per_ni_20d, s.per_ni_4y)}
           ${row3('P/OP' + (s.is_provisional ? ' <span class="tag prelim" title="' + (s.provisional_asof || '') + ' 잠정실적 기준">잠정</span>' : ''), s.per_op_now, s.per_op_20d, s.per_op_4y)}
           ${row3('P/FCF', s.per_fcf_now, s.per_fcf_20d, s.per_fcf_4y)}
@@ -856,15 +870,16 @@ def generate_html(g: dict, v: dict, bench: dict, stocks: list[dict], reports: li
 
     html = html.replace("__G_UNIV__", str(g["universe_n"])).replace("__G_EVENTS__", str(g["events_n"]))
     html = html.replace("__G_TERM_START__", g["term_range"][0]).replace("__G_TERM_END__", g["term_range"][1])
-    html = html.replace(
-        "__GROWTH_BUY_CARD__",
-        _signal_card(
-            "매수",
-            "적당히 저평가돼 있고(너무 싸지도, 안 싸지도 않은 구간) 영업이익이 최근 1년 새 4년 평균보다 2~5배 빠르게 늘고 있는 종목",
-            "0.5 ≤ per_ratio &lt; 1.0  AND  2 ≤ acceleration &lt; 5",
-            g["buy"], [12], g["events_n"],
-        ),
+    growth_buy_card = _signal_card(
+        "매수" if GROWTH_BUY_ENABLED else "매수 — 신호 중단(재검증 실패)",
+        "적당히 저평가돼 있고(너무 싸지도, 안 싸지도 않은 구간) 영업이익이 최근 1년 새 4년 평균보다 2~5배 빠르게 늘고 있는 종목"
+        if GROWTH_BUY_ENABLED
+        else "재무 데이터 오류를 고친 뒤 다시 검증하니 전체 기간 alpha가 마이너스이고, 후반부(2023Q3~)에는 같은 기간 전체 평균보다도 못했다. "
+        "그래서 이 조건으로는 매수 라벨을 내지 않는다. 아래 표는 참고용 기록이다.",
+        "0.5 ≤ per_ratio &lt; 1.0  AND  2 ≤ acceleration &lt; 5",
+        g["buy"], [12], g["events_n"],
     )
+    html = html.replace("__GROWTH_BUY_CARD__", growth_buy_card)
     html = html.replace(
         "__GROWTH_SELL_CARD__",
         _signal_card(
