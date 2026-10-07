@@ -17,6 +17,7 @@
 #   2. 대상 연·분기 재무·배당·주식수 DB 적재 (update_quarter_dbs.py)
 #   3. 해당 분기 오딧 (audit_data_dbs.py, 그 분기만 스코프)
 #   4. TTM·PER 재계산 (populate_ttm_valuation.py)
+#   4-b. 성장률 배치 (ttm_metric_growth_top_n.py) + 주식수 변동 사건 (build_share_events.py)
 #
 # 왜 "마감일 다음날" 기준인가 (2026-07-24 삼성전자로 실측): 정식 보고서는
 # 대형주도 마감일 당일에 몰아서 내는 경우가 흔하다(2026Q1 삼성전자: 5/15 당일
@@ -117,6 +118,17 @@ SCOPE_LABEL="전종목"
 
     echo "--- B2: TTM·PER 재계산 (--term $TERM) ---"
     "$PY" scripts/pipeline/populate_ttm_valuation.py --term "$TERM" "${TOPN_ARGS[@]/--top-n/--limit}"
+
+    # B3: 성장률(ttm_metric_growth.db) — 패널·대시보드의 *_geom_*_mcum 이 이 DB의 최신 배치를 읽는다.
+    #     TTM 을 새로 계산하고도 이 단계를 빼면 패널 성장 컬럼이 이전 분기 배치에 머문다(2026-10 점검에서 발견).
+    GROWTH_N=200
+    [[ ${#TOPN_ARGS[@]} -eq 0 ]] && GROWTH_N=2500
+    echo "--- B3: 성장률 배치 (--top-n $GROWTH_N --anchor-term $TERM) ---"
+    "$PY" scripts/screening/ttm_metric_growth_top_n.py --top-n "$GROWTH_N" --anchor-term "$TERM" --quiet
+
+    # 액면가 불변 주식수 변동(무상증자 등) 감지 → 대시보드 주석 (share_event_overrides.csv 의 수동 분류 반영)
+    echo "--- 주식수 변동 사건 (share_events) ---"
+    "$PY" scripts/analysis/build_share_events.py
 
     echo "--- 상장 리스트·유니버스 스냅샷 커밋 ---"
     if [[ -n "$(git status --porcelain -- stock_data/stock_listing.csv stock_data/mcap_top_200.csv)" ]]; then
