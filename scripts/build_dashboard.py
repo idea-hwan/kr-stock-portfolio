@@ -44,6 +44,7 @@ PIT_DB = _ROOT / "data" / "analytics" / "pit_buckets.db"
 PRICES_DB = _ROOT / "data" / "analytics" / "prices.db"
 MCAP_CSV = _ROOT / "stock_data" / "mcap_top_200.csv"
 INDUSTRY_CSV = _ROOT / "data" / "analytics" / "industry_map.csv"
+SHARE_EVENTS_CSV = _ROOT / "data" / "analytics" / "share_events.csv"
 CURRENT_PRICE_CSV = _ROOT / "data" / "analytics" / "current_prices.csv"
 REPORTS_DIR = _ROOT / "docs" / "signal_reports"
 OUT_HTML = _ROOT / "docs" / "index.html"
@@ -238,6 +239,8 @@ def compute_stock_rows() -> list[dict]:
         is_growth = r["growth_pit16"] == 1
         is_value = r["value_pit16"] == 1
         bucket_labels = []
+    share_notes = load_share_notes(str(latest["ttm_end_term"].max()))
+
         if is_growth:
             bucket_labels.append("성장")
         if is_value:
@@ -324,6 +327,7 @@ def compute_stock_rows() -> list[dict]:
             }
         )
     rows.sort(key=lambda x: (x["marcap"] is None, -(x["marcap"] or 0)))
+                "share_note": share_notes.get(r["company"]),
     return rows
 
 
@@ -383,6 +387,33 @@ def load_signal_reports() -> list[dict]:
     if not REPORTS_DIR.exists():
         return []
     reports = []
+def load_share_notes(latest_term: str) -> dict[str, str]:
+    """주식수 변동(액면가 불변) 사건 주석 — 최근 16분기(4년 평균 PER 구간) 안의 사건만.
+    무상증자는 과거 주당값을 소급 보정했다는 표시, 무상+유상 혼재·불명·감소는 보정하지 않아
+    PER 이 왜곡될 수 있다는 경고. 순수 유상증자는 실제 희석이라 주석 없음."""
+    if not SHARE_EVENTS_CSV.is_file():
+        return {}
+    ev = pd.read_csv(SHARE_EVENTS_CSV).fillna("")
+    y, q = int(latest_term[:4]), int(latest_term[-1])
+    n = y * 4 + (q - 1) - 15
+    floor = f"{n // 4}Q{n % 4 + 1}"
+    ev = ev[(ev["term"] >= floor) & (ev["class"].isin(["무상증자", "무상+유상", "불명", "감소"]))]
+    notes: dict[str, list[str]] = {}
+    for _, r in ev.sort_values("term").iterrows():
+        if r["class"] == "무상증자":
+            txt = f"{r['term']} 무상증자 ×{r['ratio']:.2f} — 과거 주당값 소급 보정 적용"
+        elif r["class"] == "무상+유상":
+            txt = f"{r['term']} 주식수 ×{r['ratio']:.2f}(무상+유상 혼재) — 보정 안 함, 이전 구간 PER 왜곡 가능"
+        elif r["class"] == "감소":
+            txt = f"{r['term']} 주식수 ×{r['ratio']:.2f}(소각·감자·분할) — 보정 안 함, PER 왜곡 가능"
+        else:
+            txt = f"{r['term']} 주식수 ×{r['ratio']:.2f}(원인 미확정) — 보정 안 함, PER 왜곡 가능"
+        if r["note"]:
+            txt += f" [{r['note']}]"
+        notes.setdefault(r["company"], []).append(txt)
+    return {c: " / ".join(v) for c, v in notes.items()}
+
+
     for path in sorted(REPORTS_DIR.glob("*.md"), reverse=True):
         text = path.read_text(encoding="utf-8")
         body_html = markdown.markdown(text, extensions=["tables"])
@@ -670,6 +701,7 @@ function detailHtml(s) {
       <table class="dtbl">
         <thead><tr><th></th><th>현재</th><th>20일</th><th>4년</th></tr></thead>
         <tbody>
+      ${s.share_note ? infoRow('주식수 변동', '<span class="neg-text">' + s.share_note + '</span>') : ''}
           ${row3('P/NI', s.per_ni_now, s.per_ni_20d, s.per_ni_4y)}
           ${row3('P/OP' + (s.is_provisional ? ' <span class="tag prelim" title="' + (s.provisional_asof || '') + ' 잠정실적 기준">잠정</span>' : ''), s.per_op_now, s.per_op_20d, s.per_op_4y)}
           ${row3('P/FCF', s.per_fcf_now, s.per_fcf_20d, s.per_fcf_4y)}

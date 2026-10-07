@@ -26,6 +26,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -33,6 +34,7 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 from scripts.analysis import fs_metrics as fm
+from scripts.analysis.share_events import apply_bonus_issue_adjustment, detect_share_events
 from scripts.analysis.series_per import enrich_ttm_series_with_per
 from scripts.quarter_terms import iter_terms, parse_term, shift_term
 from scripts.stock_db import DIVIDEND_DB_DIR
@@ -77,6 +79,47 @@ def _load_face_value(db: fm.FS_DB, term: str, company: str) -> int | None:
     return None
 
 
+def _drop_face_value_blips(fv: pd.Series) -> pd.Series:
+    """
+    액면가는 한 번 바뀌면 유지된다. 앞뒤 분기가 같은 값인데 중간 한 분기만 다르면
+    DART 공시 오기(효성중공업 2025Q4: 5,000→7,500→5,000)로 보고 결측 처리한다(이후 bfill/ffill).
+    """
+    v = pd.to_numeric(fv, errors="coerce").reset_index(drop=True)
+    out = v.copy()
+    for i in range(1, len(v) - 1):
+        a, b, c = v.iloc[i - 1], v.iloc[i], v.iloc[i + 1]
+        if pd.notna(a) and pd.notna(b) and pd.notna(c) and a == c and b != a:
+            out.iloc[i] = float("nan")
+    out.index = fv.index
+    return out
+
+
+_ISTC_UNIT_RATIO_MIN = 300.0
+
+
+def _sanitize_istc(values: pd.Series) -> pd.Series:
+    """
+    DART 주식수가 천·백만 단위로 부풀려 들어오는 경우(LS에코에너지 2025Q4 ×1e6, ISC 2019 ×1e3 등)를
+    분기 값의 중앙값 대비 비율로 탐지해 10^k 로 되돌린다. 되돌려도 중앙값과 안 맞으면 결측.
+    액면분할(최대 수십 배)은 임계값 미만이라 건드리지 않는다.
+    """
+    v = pd.to_numeric(values, errors="coerce")
+    pos = v[v > 0]
+    if len(pos) < 3:
+        return v
+    med = float(pos.median())
+    out = v.copy()
+    for idx, x in v.items():
+        if pd.isna(x) or x <= 0:
+            continue
+        r = x / med
+        if r >= _ISTC_UNIT_RATIO_MIN or r <= 1.0 / _ISTC_UNIT_RATIO_MIN:
+            k = round(np.log10(r))
+            fixed = x / (10.0**k)
+            out[idx] = fixed if 0.5 <= fixed / med <= 2.0 else float("nan")
+    return out
+
+
 def _panel(db: fm.FS_DB, company: str, chrono: list[str]) -> pd.DataFrame:
     rows = []
     for t in chrono:
@@ -103,7 +146,7 @@ def _panel(db: fm.FS_DB, company: str, chrono: list[str]) -> pd.DataFrame:
         rows.append(row)
     out = pd.DataFrame(rows)
     # eps_fps_growth_stock: FaceValue bfill → ffill, STOCKS 동일
-    fv = pd.to_numeric(out["face_value"], errors="coerce")
+    fv = _drop_face_value_blips(out["face_value"])
     out["FaceValue"] = fv.bfill().ffill()
     if out["FaceValue"].isna().any():
         bad_terms = out.loc[out["FaceValue"].isna(), "term"].astype(str).tolist()
@@ -112,8 +155,13 @@ def _panel(db: fm.FS_DB, company: str, chrono: list[str]) -> pd.DataFrame:
             f"(bfill→ffill 후에도 결측인 분기: {bad_terms}). "
             "se=주당액면가액(원) 등의 thstrm이 0이 아닌 양수인지, 배당 분기 DB를 확인하세요."
         )
-    iv = pd.to_numeric(out["istc"], errors="coerce")
-    out["istc_ffill"] = iv.bfill().ffill()
+    iv = _sanitize_istc(out["istc"])
+    out["istc"] = iv
+    # 무상증자는 주가(FDR)가 소급 보정되므로 과거 주식수도 최신 기준으로 맞춘다(섞인 건은 보정 안 함)
+    events = detect_share_events(db, company, out)
+    out = apply_bonus_issue_adjustment(out, events)
+    out.attrs["share_events"] = events
+    out["istc_ffill"] = out["istc"].bfill().ffill()
     return out
 
 
@@ -161,9 +209,10 @@ def compute(
     if anchor_df.empty:
         raise FileNotFoundError(f"앵커 재무 없음: {company} @ {anchor_term}")
     anchor_reprt = fm._reprt_code(anchor_df)
-    istc_end = fm._load_istc_totqy(anchor_term, company)
-    if istc_end is None or istc_end == 0:
+    istc_end = panel["istc"].iloc[-1]  # _panel 에서 단위 오류 보정된 값
+    if istc_end is None or pd.isna(istc_end) or istc_end == 0:
         istc_end = int(panel["istc_ffill"].dropna().iloc[-1])
+    istc_end = int(istc_end)
 
     for k in PL_KEYS:
         _add_quarterly_cum(panel, k, f"q_{k}")
