@@ -559,15 +559,122 @@ def _reprt_code(df: pd.DataFrame) -> str | None:
     return s.iloc[0] if len(s) else None
 
 
+_REPRT_HALF = "11012"
+_REPRT_Q3 = "11014"
+
+
+def _use_cumulative_income_amounts(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    반기·3분기 보고서의 손익 행은 thstrm_amount 가 **3개월 단독**이고 누적(YTD)은
+    thstrm_add_amount 에 따로 온다. 하류(`_quarterly_from_cumulative`)는 모든 금액을
+    누적으로 보고 차분하므로, 이 두 보고서의 손익 행은 누적값으로 바꿔 넣는다.
+    (현금흐름표는 thstrm_amount 가 이미 누적이라 건드리지 않는다. 1분기·사업보고서는 동일/연간.)
+    누적값이 없는 행은 그대로 둔다.
+    """
+    need = {"reprt_code", "thstrm_amount", "thstrm_add_amount"}
+    if not need.issubset(df.columns):
+        return df
+    if "sj_div" in df.columns:
+        is_income = df["sj_div"].astype(str).isin(("IS", "CIS"))
+    elif "sj_nm" in df.columns:
+        is_income = df["sj_nm"].isin(SJ_NM_FALLBACK["income_statement"])
+    else:
+        return df
+    mask = df["reprt_code"].astype(str).isin((_REPRT_HALF, _REPRT_Q3)) & is_income
+    if not mask.any():
+        return df
+    has_add = df["thstrm_add_amount"].map(_parse_amount).notna()
+    mask &= has_add
+    if not mask.any():
+        return df
+    out = df.copy()
+    out.loc[mask, "thstrm_amount"] = out.loc[mask, "thstrm_add_amount"]
+    return out
+
+
+FX_CACHE_PATH = BASE_DIR / "data" / "analytics" / "fx_usdkrw.csv"
+_FX_AMOUNT_COLS = (
+    "thstrm_amount",
+    "thstrm_add_amount",
+    "frmtrm_amount",
+    "frmtrm_add_amount",
+    "frmtrm_q_amount",
+)
+_fx_series: pd.Series | None = None
+
+
+def _load_usdkrw(need_until: pd.Timestamp) -> pd.Series:
+    """USD/KRW 일별 종가(FinanceDataReader). 캐시 CSV 가 need_until 을 못 덮으면 다시 받는다."""
+    global _fx_series
+    s = _fx_series
+    if s is None and FX_CACHE_PATH.is_file():
+        c = pd.read_csv(FX_CACHE_PATH, index_col=0, parse_dates=True)["Close"]
+        s = c.dropna()
+    if s is None or s.empty or s.index.max() < min(need_until, pd.Timestamp.today().normalize()) - pd.Timedelta(days=7):
+        import FinanceDataReader as fdr
+
+        raw = fdr.DataReader("USD/KRW", "2013-12-31")
+        s = raw["Close"].dropna()
+        if s.empty:
+            raise RuntimeError("USD/KRW 환율 조회 결과가 비었습니다")
+        FX_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        s.rename("Close").to_csv(FX_CACHE_PATH)
+    _fx_series = s
+    return s
+
+
+def _ytd_avg_usdkrw(term: str) -> float:
+    """연초~분기말 평균 환율. 재무제표 금액이 누적(YTD)이라 같은 구간 평균으로 환산한다."""
+    y, q = parse_term(term)[:2]
+    end = pd.Timestamp(y, q * 3, 1) + pd.offsets.MonthEnd(0)
+    s = _load_usdkrw(end)
+    sub = s.loc[pd.Timestamp(y, 1, 1) : end]
+    if sub.empty:
+        raise RuntimeError(f"USD/KRW 환율 없음: {term}")
+    return float(sub.mean())
+
+
+def _convert_foreign_currency_to_krw(df: pd.DataFrame, term: str) -> pd.DataFrame:
+    """
+    외화(USD) 보고 회사(두산밥캣 2023Q4~, 코오롱티슈진)는 금액이 달러 단위 → 원화 주가와
+    비교하려면 원화로 바꿔야 한다. 연초~분기말 평균환율을 곱한다(누적값 차분과 정합).
+    분기 단독 금액은 YTD 평균환율 차이만큼 근사오차가 있다. 이미 KRW 면 그대로.
+    """
+    if "currency" not in df.columns:
+        return df
+    cur = df["currency"].astype(str).str.strip().str.upper()
+    foreign = ~cur.isin(("KRW", "", "NONE", "NAN"))
+    if not foreign.any():
+        return df
+    if not cur[foreign].eq("USD").all():
+        raise ValueError(f"USD 외 외화 보고는 미지원: {sorted(set(cur[foreign]))}")
+    rate = _ytd_avg_usdkrw(term)
+    out = df.copy()
+    for col in _FX_AMOUNT_COLS:
+        if col not in out.columns:
+            continue
+
+        def conv(v: Any) -> Any:
+            p = _parse_amount(v)
+            return v if p is None else str(int(round(p * rate)))
+
+        out.loc[foreign, col] = out.loc[foreign, col].map(conv)
+    out.loc[foreign, "currency"] = "KRW"
+    return out
+
+
 def _load_fs_or_empty(db: FS_DB, term: str, company: str) -> pd.DataFrame:
     path = FINANCIAL_DB_DIR / f"{term}.db"
     if not path.is_file():
         return pd.DataFrame()
     try:
         df = db.read_fs_db(term, company)
-        return df if df is not None and not df.empty else pd.DataFrame()
+        if df is None or df.empty:
+            return pd.DataFrame()
+        df = _use_cumulative_income_amounts(df)
     except Exception:
         return pd.DataFrame()
+    return _convert_foreign_currency_to_krw(df, term)  # 환율 조회 실패는 삼키지 않는다
 
 
 def _load_istc_totqy(term: str, company: str) -> int | None:

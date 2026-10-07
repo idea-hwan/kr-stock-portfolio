@@ -156,10 +156,9 @@ def _adjusted_valuation_table_from_series(series: list[dict[str, Any]]) -> pd.Da
             fac = 1.0
         else:
             fv_prev = float(ndf.loc[i - 1, "FaceValue_ffill"])
-            if fv_i == fv_prev:
-                fac = factors[i - 1]
-            else:
-                fac = fv_prev / fv_i if fv_i != 0 else 1.0
+            # 누적 체인: 최신 쪽 보정계수에 이번 액면 변화 비율을 곱한다(액면이 여러 번 바뀐 종목 대응).
+            step = fv_prev / fv_i if fv_i != 0 else 1.0
+            fac = factors[i - 1] * step
         factors.append(fac)
         for col, lst in zip(raw_cols, out_lists):
             er = ndf.loc[i, col]
