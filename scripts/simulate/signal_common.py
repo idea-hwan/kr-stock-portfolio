@@ -100,7 +100,9 @@ def add_benchmark_alpha(
         bench_exit_px = target_dates.map(exit_price_map)
 
         bench_ret = pd.Series(float("nan"), index=out.index)
-        usable = bench_entry_px.notna() & (bench_entry_px > 0) & bench_exit_px.notna()
+        # 벤치마크 마지막 날짜 이후가 목표인 이벤트는 기간 미경과 → alpha 계산 안 함
+        matured = target_dates <= bench.index.max()
+        usable = bench_entry_px.notna() & (bench_entry_px > 0) & bench_exit_px.notna() & matured
         bench_ret.loc[usable] = bench_exit_px[usable] / bench_entry_px[usable] - 1.0
 
         out[f"alpha_{m}m"] = out[ret_col] - bench_ret

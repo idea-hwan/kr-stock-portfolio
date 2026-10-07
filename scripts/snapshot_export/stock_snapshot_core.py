@@ -63,7 +63,11 @@ def _growth_real(v: object) -> float:
 def load_growth_metrics_for_company(
     company: str, growth_db: Path
 ) -> dict[str, dict[str, float]] | None:
-    """분기당 첫 batch 행만 — rev/op/ni/capex/cfo/fcf 의 1y·2y·4y geom %(ttm_metric_growth_series)."""
+    """분기당 **최신** batch 행만 — rev/op/ni/capex/cfo/fcf 의 1y·2y·4y geom %(ttm_metric_growth_series).
+
+    DB 는 append-only 라 같은 분기에 옛(재계산 전) 배치가 남는다 → 날짜형 라벨(YYYY-…) 중 가장 늦은 배치를 쓴다.
+    smoke·*_test 같은 수동 테스트 라벨은 제외.
+    """
     if not growth_db.is_file():
         return None
     cols = ", ".join(GROWTH_GEOM_KEYS)
@@ -73,8 +77,8 @@ def load_growth_metrics_for_company(
             f"""
             SELECT ttm_end_term, {cols}
             FROM ttm_metric_growth_series
-            WHERE company = ?
-            ORDER BY ttm_end_term, batch_label
+            WHERE company = ? AND batch_label GLOB '[0-9][0-9][0-9][0-9]-*'
+            ORDER BY ttm_end_term, batch_label DESC
             """,
             (company,),
         )
@@ -142,9 +146,14 @@ def _forward_returns(
     months_list: list[int],
 ) -> dict[str, float | None]:
     out: dict[str, float | None] = {}
+    last_bar = pd.Timestamp(px["Date"].max()).normalize() if len(px) else None
     for m in months_list:
         key = f"ret_{m}m"
         target = entry_d + pd.DateOffset(months=m)
+        # 아직 지나지 않은 기간(목표일이 마지막 가격일보다 뒤)은 부분 수익률을 N개월로 세지 않는다.
+        if last_bar is None or target > last_bar:
+            out[key] = None
+            continue
         exit_d = _last_trade_on_or_before(px, target)
         if exit_d is None or exit_d <= entry_d:
             out[key] = None
