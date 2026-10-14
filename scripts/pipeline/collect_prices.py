@@ -34,6 +34,10 @@ BENCHMARK_CODE = "KS200"  # KOSPI200 지수(ETF 아님, FDR 지수 코드) — U
                            # 유니버스에 명시적으로 포함해 "벤치마크가 유니버스 밖이라 갱신에서
                            # 누락된다" 결함을 처음부터 피한다.
 SLEEP_SEC = 0.3
+# 2026-10-08부터 프로세스의 첫 HTTPS 요청만 SSL 인증서 오류(self-signed certificate in chain)로
+# 실패하고 두 번째부터는 정상이라, 첫 종목(삼성전자)만 매일 누락됐다 — 실패 시 몇 번 재시도한다.
+FETCH_ATTEMPTS = 3
+RETRY_SLEEP_SEC = 2.0
 
 MCAP_TOP200_CSV = _ROOT / "stock_data" / "mcap_top_200.csv"
 STOCK_LISTING_CSV = _ROOT / "stock_data" / "stock_listing.csv"
@@ -214,13 +218,23 @@ def main() -> int:
         # 겹친 구간이 저장값과 다르면(보정 발생) 그 종목만 전체 재수집한다.
         start = START_DATE if last is None else (date.fromisoformat(last) - timedelta(days=OVERLAP_DAYS)).isoformat()
 
-        try:
-            px = fetch_one(code, start, today)
-            if px is not None and not px.empty and last is not None and _history_changed(conn, code, px, last):
-                print(f"[{i}/{len(codes)}] {code} 과거 종가가 달라짐(액면분할·증자 보정 추정) — 전체 재수집")
-                px = fetch_one(code, START_DATE, today)
-        except Exception as exc:
-            print(f"[{i}/{len(codes)}] {code} 조회 실패: {exc}", file=sys.stderr)
+        px = None
+        err = None
+        for attempt in range(1, FETCH_ATTEMPTS + 1):
+            try:
+                px = fetch_one(code, start, today)
+                if px is not None and not px.empty and last is not None and _history_changed(conn, code, px, last):
+                    print(f"[{i}/{len(codes)}] {code} 과거 종가가 달라짐(액면분할·증자 보정 추정) — 전체 재수집")
+                    px = fetch_one(code, START_DATE, today)
+                err = None
+                break
+            except Exception as exc:
+                err = exc
+                if attempt < FETCH_ATTEMPTS:
+                    print(f"[{i}/{len(codes)}] {code} 조회 실패({attempt}/{FETCH_ATTEMPTS}), 재시도: {exc}", file=sys.stderr)
+                    time.sleep(RETRY_SLEEP_SEC)
+        if err is not None:
+            print(f"[{i}/{len(codes)}] {code} 조회 실패: {err}", file=sys.stderr)
             n_err += 1
             time.sleep(SLEEP_SEC)
             continue

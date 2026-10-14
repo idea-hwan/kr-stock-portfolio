@@ -17,7 +17,9 @@
     체크해야 한다 — 그 날짜가 항상 월요일인 건 아니기 때문.
   - 매주 토요일 KST 12:00: preliminary_earnings_update.sh (잠정실적 얼리
     시그널, preliminary_target_term()의 넓은 창 — 분기 마감 전 회사마다
-    흩어져서 올라오는 공시를 매주 다시 훑어서 채운다).
+    흩어져서 올라오는 공시를 매주 다시 훑어서 채운다). 실패하면(DART 점검 등)
+    3시간 간격으로 최대 2번 재시도한다 — 잠정실적은 대시보드 밸류매수 판정에
+    들어가므로 빠지면 주간 리포트 전에 메워야 한다(2026-10-10 점검으로 실패한 사례).
 
 두 재무 잡 모두 활성 창/날짜가 아니면 DART를 부르지 않고 스스로 스킵하므로
 매일 호출해도 안전하다.
@@ -40,7 +42,7 @@ Ctrl+C로 종료.
 
 import subprocess
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
@@ -59,6 +61,9 @@ PRELIMINARY_WEEKDAY = 5  # 토요일 (월=0 ... 일=6)
 PRELIMINARY_HOUR = 12
 PRELIMINARY_MINUTE = 0
 
+PRELIMINARY_RETRY_DELAY = timedelta(hours=3)
+PRELIMINARY_MAX_RETRIES = 2
+
 CHECK_INTERVAL_SEC = 20
 
 
@@ -70,13 +75,15 @@ def log(msg: str) -> None:
         f.write(line + "\n")
 
 
-def run(script: Path, name: str) -> None:
+def run(script: Path, name: str) -> bool:
     log(f"{name} 실행 시작")
     try:
         subprocess.run(["bash", str(script)], check=True)
         log(f"{name} 완료")
+        return True
     except subprocess.CalledProcessError as e:
         log(f"{name} 실패 (exit {e.returncode}) — 상세는 automation/logs/*.log 참조")
+        return False
 
 
 def main() -> None:
@@ -89,6 +96,8 @@ def main() -> None:
     last_daily_date = None
     last_quarterly_date = None
     last_preliminary_date = None
+    preliminary_retry_at = None
+    preliminary_retries = 0
 
     try:
         while True:
@@ -112,8 +121,23 @@ def main() -> None:
                 and now.minute == PRELIMINARY_MINUTE
                 and last_preliminary_date != now.date()
             ):
-                run(PRELIMINARY_SCRIPT, "preliminary_earnings_update")
                 last_preliminary_date = now.date()
+                preliminary_retries = 0
+                preliminary_retry_at = None
+                if not run(PRELIMINARY_SCRIPT, "preliminary_earnings_update"):
+                    preliminary_retry_at = datetime.now() + PRELIMINARY_RETRY_DELAY
+                    log(f"preliminary_earnings_update 재시도 예약 {preliminary_retry_at:%m-%d %H:%M}")
+
+            if preliminary_retry_at is not None and now >= preliminary_retry_at:
+                preliminary_retries += 1
+                if run(PRELIMINARY_SCRIPT, f"preliminary_earnings_update 재시도 {preliminary_retries}/{PRELIMINARY_MAX_RETRIES}"):
+                    preliminary_retry_at = None
+                elif preliminary_retries < PRELIMINARY_MAX_RETRIES:
+                    preliminary_retry_at = datetime.now() + PRELIMINARY_RETRY_DELAY
+                    log(f"preliminary_earnings_update 재시도 예약 {preliminary_retry_at:%m-%d %H:%M}")
+                else:
+                    preliminary_retry_at = None
+                    log("preliminary_earnings_update 재시도 모두 실패 — 주간 리포트 전에 수동 재수집 필요")
 
             time.sleep(CHECK_INTERVAL_SEC)
     except KeyboardInterrupt:
