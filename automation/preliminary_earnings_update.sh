@@ -10,7 +10,10 @@
 #
 # 정식 재무제표(CFO·자산·자본·주식수 등)는 여기서 안 나온다 — 그건 마감일
 # 기준으로 도는 automation/quarterly_financial_update.sh 담당. 이 스크립트는
-# 순수 얼리 시그널 보조 트랙이라 대시보드 파이프라인에 연결돼 있지 않다.
+# 얼리 시그널 보조 트랙이지만 대시보드에 연결돼 있다 — build_dashboard.py 의
+# apply_preliminary_overlay 가 이 DB로 per_op_20d/4y 를 덮어써서 밸류매수 판정에
+# 들어간다. 실패하면 그 주 잠정 공시가 신호에서 빠지므로, 주간 리포트 전에 성공 여부를
+# 확인한다(automation/prompts/weekly_signal_report_prompt.md).
 #
 # data/analytics/ 는 .gitignore 대상이라 git commit/push 없음.
 #
