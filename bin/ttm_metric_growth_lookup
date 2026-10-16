@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ttm_metric_growth.db 종목 조회. docs/ttm_metric_growth.md
+# ttm_metric_growth.db 종목 조회. scripts_docs/ttm_metric_growth.md
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"

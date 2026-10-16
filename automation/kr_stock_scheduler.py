@@ -37,25 +37,39 @@ A3(이름변경)·A4(신규백필)처럼 판단이 필요한 예외 처리는 �
 쌓인다. 이 스크립트는 "언제 뭘 실행했는지"만 automation/logs/scheduler.log
 에 기록한다.
 
+놓친 실행 따라잡기: 잡별 마지막 실행 날짜를 automation/logs/scheduler_state.json
+에 저장해서, 맥이 잠들어 있었거나 스케줄러를 재시작해 정해진 시각을 놓쳤으면
+깨어난 직후 바로 실행한다(데일리는 그날 16:00 이후, 잠정실적은 그 주 토요일
+12:00 이후). 분기 재무는 트리거 날짜(마감+1/+8일)를 통째로 놓쳤어도 최근
+QUARTERLY_CATCHUP_DAYS일 안이면 그 분기를 연·분기 인자로 지정해 실행한다.
+
 Ctrl+C로 종료.
 """
 
+import json
 import subprocess
+import sys
 import time
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(Path(__file__).parent))
+from quarterly_term_window import formal_target_term  # noqa: E402
+
 DAILY_SCRIPT = ROOT / "automation" / "daily_update.sh"
 QUARTERLY_SCRIPT = ROOT / "automation" / "quarterly_financial_update.sh"
 PRELIMINARY_SCRIPT = ROOT / "automation" / "preliminary_earnings_update.sh"
 LOG_FILE = ROOT / "automation" / "logs" / "scheduler.log"
+# 잡별 마지막 실행 날짜 — 재시작·잠자기 후에도 놓친 실행을 따라잡기 위해 저장
+STATE_FILE = ROOT / "automation" / "logs" / "scheduler_state.json"
 
 DAILY_HOUR = 16
 DAILY_MINUTE = 0
 
 QUARTERLY_HOUR = 9
 QUARTERLY_MINUTE = 0
+QUARTERLY_CATCHUP_DAYS = 30  # 이보다 오래 꺼져 있었으면 놓친 트리거 날짜를 따라잡지 않음(수동 실행)
 
 PRELIMINARY_WEEKDAY = 5  # 토요일 (월=0 ... 일=6)
 PRELIMINARY_HOUR = 12
@@ -75,10 +89,10 @@ def log(msg: str) -> None:
         f.write(line + "\n")
 
 
-def run(script: Path, name: str) -> bool:
+def run(script: Path, name: str, *args: str) -> bool:
     log(f"{name} 실행 시작")
     try:
-        subprocess.run(["bash", str(script)], check=True)
+        subprocess.run(["bash", str(script), *args], check=True)
         log(f"{name} 완료")
         return True
     except subprocess.CalledProcessError as e:
@@ -86,16 +100,56 @@ def run(script: Path, name: str) -> bool:
         return False
 
 
+def load_state() -> dict[str, date]:
+    try:
+        raw = json.loads(STATE_FILE.read_text())
+        return {k: date.fromisoformat(v) for k, v in raw.items()}
+    except (FileNotFoundError, ValueError):
+        return {}
+
+
+def save_state(state: dict[str, date]) -> None:
+    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    STATE_FILE.write_text(json.dumps({k: v.isoformat() for k, v in state.items()}, indent=2))
+
+
+def at(day: date, hour: int, minute: int) -> datetime:
+    return datetime.combine(day, datetime.min.time()).replace(hour=hour, minute=minute)
+
+
+def latest_preliminary_slot(now: datetime) -> datetime:
+    """now 이전(포함) 가장 최근의 토요일 12:00."""
+    days_back = (now.weekday() - PRELIMINARY_WEEKDAY) % 7
+    slot = at(now.date() - timedelta(days=days_back), PRELIMINARY_HOUR, PRELIMINARY_MINUTE)
+    return slot if slot <= now else slot - timedelta(days=7)
+
+
+def missed_quarterly_terms(last: date | None, now: datetime) -> tuple[list[str], date]:
+    """last 다음날부터 오늘(09:00 지났으면)까지 중 트리거 날짜(마감+1/+8일)에 해당하는 분기들.
+    반환: (실행할 분기 목록, 체크 완료로 기록할 마지막 날짜)."""
+    end = now.date() if now >= at(now.date(), QUARTERLY_HOUR, QUARTERLY_MINUTE) else now.date() - timedelta(days=1)
+    start = max(
+        (last + timedelta(days=1)) if last else end,
+        now.date() - timedelta(days=QUARTERLY_CATCHUP_DAYS),
+    )
+    terms: list[str] = []
+    d = start
+    while d <= end:
+        term = formal_target_term(d)
+        if term and term not in terms:
+            terms.append(term)
+        d += timedelta(days=1)
+    return terms, end
+
+
 def main() -> None:
     log(
         f"스케줄러 시작 — 매일 KST {DAILY_HOUR:02d}:{DAILY_MINUTE:02d} daily_update, "
         f"매일 KST {QUARTERLY_HOUR:02d}:{QUARTERLY_MINUTE:02d} quarterly_financial_update(마감일+1/+8일에만 실행), "
         f"매주 토요일 KST {PRELIMINARY_HOUR:02d}:{PRELIMINARY_MINUTE:02d} preliminary_earnings_update. "
-        "Ctrl+C로 종료."
+        "시각을 놓쳤으면(잠자기·재시작) 깨어난 뒤 따라잡는다. Ctrl+C로 종료."
     )
-    last_daily_date = None
-    last_quarterly_date = None
-    last_preliminary_date = None
+    state = load_state()
     preliminary_retry_at = None
     preliminary_retries = 0
 
@@ -103,25 +157,23 @@ def main() -> None:
         while True:
             now = datetime.now()
 
-            if now.hour == DAILY_HOUR and now.minute == DAILY_MINUTE and last_daily_date != now.date():
+            if now >= at(now.date(), DAILY_HOUR, DAILY_MINUTE) and state.get("daily") != now.date():
+                state["daily"] = now.date()
+                save_state(state)
                 run(DAILY_SCRIPT, "daily_update")
-                last_daily_date = now.date()
 
-            if (
-                now.hour == QUARTERLY_HOUR
-                and now.minute == QUARTERLY_MINUTE
-                and last_quarterly_date != now.date()
-            ):
-                run(QUARTERLY_SCRIPT, "quarterly_financial_update")
-                last_quarterly_date = now.date()
+            terms, checked_until = missed_quarterly_terms(state.get("quarterly"), now)
+            if state.get("quarterly") != checked_until:
+                state["quarterly"] = checked_until
+                save_state(state)
+                for term in terms:
+                    run(QUARTERLY_SCRIPT, f"quarterly_financial_update {term}", term[:4], term[-1])
 
-            if (
-                now.weekday() == PRELIMINARY_WEEKDAY
-                and now.hour == PRELIMINARY_HOUR
-                and now.minute == PRELIMINARY_MINUTE
-                and last_preliminary_date != now.date()
-            ):
-                last_preliminary_date = now.date()
+            slot = latest_preliminary_slot(now)
+            last_prelim = state.get("preliminary")
+            if last_prelim is None or last_prelim < slot.date():
+                state["preliminary"] = now.date()
+                save_state(state)
                 preliminary_retries = 0
                 preliminary_retry_at = None
                 if not run(PRELIMINARY_SCRIPT, "preliminary_earnings_update"):

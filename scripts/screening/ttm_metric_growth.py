@@ -29,7 +29,7 @@ split 출력: 분기·분기성장률(%)·span·1y_%~8y_%·q_empty·q_minus (QoQ
 예:
   .venv/bin/python scripts/screening/ttm_metric_growth.py --company 삼성전자
   .venv/bin/python scripts/screening/ttm_metric_growth.py --company 삼성전자 --view wide
-  문서: docs/ttm_metric_growth.md
+  문서: scripts_docs/ttm_metric_growth.md
 """
 
 from __future__ import annotations

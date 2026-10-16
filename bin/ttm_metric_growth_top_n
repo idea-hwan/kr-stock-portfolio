@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 시총 상위 N종 TTM 성장률 배치 → 항상 ttm_metric_growth.db 적재.
-# 인자 없으면 --top-n 2500 만 전달. 상세: docs/ttm_metric_growth.md
+# 인자 없으면 --top-n 2500 만 전달. 상세: scripts_docs/ttm_metric_growth.md
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"

@@ -13,6 +13,7 @@ data/analytics/
 
 # 자동화 실행 로그
 automation/logs/*.log
+automation/logs/scheduler_state.json
 
 # update_stock_listing.py가 실행마다 남기는 타임스탬프 백업 — 계속 쌓여서 repo가
 # 커지므로 앞으로 생기는 것만 제외(기존에 커밋된 backups/*.csv는 그대로 유지)

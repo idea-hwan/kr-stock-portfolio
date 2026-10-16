@@ -4,6 +4,8 @@ DART·KRX 상장 리스트를 기준으로 **분기별 원천 SQLite**를 쌓고
 
 모든 명령은 **프로젝트 루트**에서 실행합니다. Python은 `**.venv/bin/python scripts/.../foo.py`** 형태를 쓰면 됩니다(실행 비트 없이 `foo.py`만 치면 `permission denied`가 날 수 있음).
 
+**AI 에이전트(Cursor 등)용 작업 규칙:** [AGENTS.md](AGENTS.md) (Cursor는 `.cursor/rules/project.mdc`로 자동 적용)
+
 **자동화 스케줄러(가격·재무 데일리/분기 자동 갱신) 실행·스케줄·제약:** [automation_usage.md](automation_usage.md)
 
 ---
@@ -13,6 +15,21 @@ DART·KRX 상장 리스트를 기준으로 **분기별 원천 SQLite**를 쌓고
 - 가상환경: `requirements.txt` 기준으로 `.venv` 구성
 - **Open DART API 키**: `.env` (예시는 `.env.example`). **분기 원천 적재(A)** 에서만 API를 부릅니다.
 - 스키마·폴더 구조: [scripts_docs/db.md](scripts_docs/db.md)
+
+### 새 맥으로 옮길 때
+
+git에는 코드·문서·`stock_data/`만 있다. 아래는 직접 옮기거나 새로 만들어야 한다.
+
+1. `git clone https://github.com/idea-hwan/kr-stock-portfolio.git` + GitHub push 인증(`gh auth login` 등) — 자동화가 `git push origin main`을 한다
+2. **`data/` 통째로 복사(약 6GB)** — 분기 원천 DB(2015~)·`prices.db`·`ttm_*.db` 등. DART로 처음부터 재수집하면 며칠 걸린다. `data/analytics/industry_map.csv`·`fx_usdkrw.csv`는 자동화가 만들지 않으므로 꼭 포함. `data/analytics/scratch/`는 빼도 된다
+   ```bash
+   rsync -a --exclude 'analytics/scratch' <원본>/kr-stock-portfolio/data/ ./data/
+   ```
+3. `.env` 복사 (`DART_API_KEY`)
+4. 가상환경 새로 생성 (Python 3.10): `python3.10 -m venv .venv && .venv/bin/pip install -r requirements.txt`
+5. 이전 맥의 스케줄러를 끄고 나서 새 맥에서 띄운다 — 두 대가 동시에 돌면 `docs/index.html` push가 충돌한다
+
+`automation/logs/`, `docs_cache/`, `.venv/`는 옮기지 않는다(재생성됨).
 
 ---
 

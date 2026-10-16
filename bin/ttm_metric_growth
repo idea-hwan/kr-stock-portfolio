@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# TTM 수정 누적 성장률 — 단일 종목. 상세: docs/ttm_metric_growth.md
+# TTM 수정 누적 성장률 — 단일 종목. 상세: scripts_docs/ttm_metric_growth.md
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"

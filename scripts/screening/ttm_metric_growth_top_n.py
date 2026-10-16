@@ -4,7 +4,7 @@
   .venv/bin/python scripts/screening/ttm_metric_growth_top_n.py --top-n 2500
   .venv/bin/python scripts/screening/ttm_metric_growth_top_n.py --top-n 10
   (배치 성공 시 항상 data/analytics/ttm_metric_growth.db 적재)
-  문서: docs/ttm_metric_growth.md
+  문서: scripts_docs/ttm_metric_growth.md
 
 종목 순서: `stock_listing.csv` 의 Marcap 내림차순(우선주·스팩·리츠 등은 `stock_db` 기본 제외).
 """
