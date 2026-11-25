@@ -19,7 +19,10 @@
     시그널, preliminary_target_term()의 넓은 창 — 분기 마감 전 회사마다
     흩어져서 올라오는 공시를 매주 다시 훑어서 채운다). 실패하면(DART 점검 등)
     3시간 간격으로 최대 2번 재시도한다 — 잠정실적은 대시보드 밸류매수 판정에
-    들어가므로 빠지면 주간 리포트 전에 메워야 한다(2026-10-10 점검으로 실패한 사례).
+    들어간다(2026-10-10 점검으로 실패한 사례).
+  - 매주 일요일 KST 18:00: weekly_signal_report.sh (주간 매수·매도 신호 리포트).
+    토요일 잠정실적 이후, 월요일 장 전. 가격 기준은 직전 거래일 종가.
+    검토 없이 리포트와 대시보드를 commit+push 한다(2026-10-17).
 
 두 재무 잡 모두 활성 창/날짜가 아니면 DART를 부르지 않고 스스로 스킵하므로
 매일 호출해도 안전하다.
@@ -60,6 +63,7 @@ from quarterly_term_window import formal_target_term  # noqa: E402
 DAILY_SCRIPT = ROOT / "automation" / "daily_update.sh"
 QUARTERLY_SCRIPT = ROOT / "automation" / "quarterly_financial_update.sh"
 PRELIMINARY_SCRIPT = ROOT / "automation" / "preliminary_earnings_update.sh"
+WEEKLY_SCRIPT = ROOT / "automation" / "weekly_signal_report.sh"
 LOG_FILE = ROOT / "automation" / "logs" / "scheduler.log"
 # 잡별 마지막 실행 날짜 — 재시작·잠자기 후에도 놓친 실행을 따라잡기 위해 저장
 STATE_FILE = ROOT / "automation" / "logs" / "scheduler_state.json"
@@ -77,6 +81,11 @@ PRELIMINARY_MINUTE = 0
 
 PRELIMINARY_RETRY_DELAY = timedelta(hours=3)
 PRELIMINARY_MAX_RETRIES = 2
+
+WEEKLY_WEEKDAY = 6  # 일요일 (월=0 ... 일=6)
+WEEKLY_HOUR = 18
+WEEKLY_MINUTE = 0
+WEEKLY_CATCHUP_DAYS = 1  # 일요일을 놓치면 다음날(월)까지만. 그 이후엔 그 주 리포트를 건너뜀
 
 CHECK_INTERVAL_SEC = 20
 
@@ -117,11 +126,21 @@ def at(day: date, hour: int, minute: int) -> datetime:
     return datetime.combine(day, datetime.min.time()).replace(hour=hour, minute=minute)
 
 
+def latest_slot(now: datetime, weekday: int, hour: int, minute: int) -> datetime:
+    """now 이전(포함) 가장 최근의 해당 요일·시각."""
+    days_back = (now.weekday() - weekday) % 7
+    slot = at(now.date() - timedelta(days=days_back), hour, minute)
+    return slot if slot <= now else slot - timedelta(days=7)
+
+
 def latest_preliminary_slot(now: datetime) -> datetime:
     """now 이전(포함) 가장 최근의 토요일 12:00."""
-    days_back = (now.weekday() - PRELIMINARY_WEEKDAY) % 7
-    slot = at(now.date() - timedelta(days=days_back), PRELIMINARY_HOUR, PRELIMINARY_MINUTE)
-    return slot if slot <= now else slot - timedelta(days=7)
+    return latest_slot(now, PRELIMINARY_WEEKDAY, PRELIMINARY_HOUR, PRELIMINARY_MINUTE)
+
+
+def latest_weekly_slot(now: datetime) -> datetime:
+    """now 이전(포함) 가장 최근의 일요일 18:00."""
+    return latest_slot(now, WEEKLY_WEEKDAY, WEEKLY_HOUR, WEEKLY_MINUTE)
 
 
 def missed_quarterly_terms(last: date | None, now: datetime) -> tuple[list[str], date]:
@@ -146,7 +165,8 @@ def main() -> None:
     log(
         f"스케줄러 시작 — 매일 KST {DAILY_HOUR:02d}:{DAILY_MINUTE:02d} daily_update, "
         f"매일 KST {QUARTERLY_HOUR:02d}:{QUARTERLY_MINUTE:02d} quarterly_financial_update(마감일+1/+8일에만 실행), "
-        f"매주 토요일 KST {PRELIMINARY_HOUR:02d}:{PRELIMINARY_MINUTE:02d} preliminary_earnings_update. "
+        f"매주 토요일 KST {PRELIMINARY_HOUR:02d}:{PRELIMINARY_MINUTE:02d} preliminary_earnings_update, "
+        f"매주 일요일 KST {WEEKLY_HOUR:02d}:{WEEKLY_MINUTE:02d} weekly_signal_report. "
         "시각을 놓쳤으면(잠자기·재시작) 깨어난 뒤 따라잡는다. Ctrl+C로 종료."
     )
     state = load_state()
@@ -179,6 +199,21 @@ def main() -> None:
                 if not run(PRELIMINARY_SCRIPT, "preliminary_earnings_update"):
                     preliminary_retry_at = datetime.now() + PRELIMINARY_RETRY_DELAY
                     log(f"preliminary_earnings_update 재시도 예약 {preliminary_retry_at:%m-%d %H:%M}")
+
+            slot_weekly = latest_weekly_slot(now)
+            last_weekly = state.get("weekly_report")
+            # 이 잡을 처음 넣는 시점이 지난 일요일을 하루 넘게 지난 뒤면 소급 발행하지 않는다.
+            if last_weekly is None and (now.date() - slot_weekly.date()).days > WEEKLY_CATCHUP_DAYS:
+                state["weekly_report"] = slot_weekly.date()
+                save_state(state)
+                log(
+                    "weekly_signal_report 소급 생략 — "
+                    f"다음 일요일 {WEEKLY_HOUR:02d}:{WEEKLY_MINUTE:02d}부터"
+                )
+            elif last_weekly is None or last_weekly < slot_weekly.date():
+                state["weekly_report"] = now.date()
+                save_state(state)
+                run(WEEKLY_SCRIPT, "weekly_signal_report")
 
             if preliminary_retry_at is not None and now >= preliminary_retry_at:
                 preliminary_retries += 1

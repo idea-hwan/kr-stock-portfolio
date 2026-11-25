@@ -9,4 +9,4 @@ alwaysApply: true
 - `data/`(약 6GB, git 미포함)는 지우거나 덮어쓰지 않는다. 그런 명령은 사용자에게 먼저 확인받는다.
 - 스케줄러가 main에 자동 push하므로 커밋 전 `git pull --rebase`, force push 금지.
 - 자동화 스크립트(`automation/*.sh`)는 요청 없이 실행하지 않는다.
-- 주간 리포트는 `automation/prompts/weekly_signal_report_prompt.md` 절차를 따르고, 커밋 전 사용자 검토를 받는다.
+- 주간 리포트는 매주 일요일 18:00 스케줄러가 돌린다. `automation/prompts/weekly_signal_report_prompt.md` 절차를 따르고, 검토 없이 커밋·푸시한다.

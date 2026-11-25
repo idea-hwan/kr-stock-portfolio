@@ -225,6 +225,9 @@ def listing_names_ordered_by_marcap(
         ex |= holding_company_exclusion_mask(tmp)
     work = work.loc[~ex]
     work = work.assign(Marcap=pd.to_numeric(work["Marcap"], errors="coerce"))
+    work = work.dropna(subset=["Marcap"])
+    if work.empty:
+        raise ValueError("stock_listing.csv 의 Marcap 이 전부 비어 있습니다.")
     work = work.sort_values("Marcap", ascending=False, na_position="last")
     seen: set[str] = set()
     out: list[str] = []
@@ -279,6 +282,9 @@ def mcap_top_n_listing_rows(
         ex |= holding_company_exclusion_mask(tmp)
     work = work.loc[~ex]
     work = work.assign(Marcap=pd.to_numeric(work["Marcap"], errors="coerce"))
+    work = work.dropna(subset=["Marcap"])
+    if work.empty:
+        raise ValueError("stock_listing.csv 의 Marcap 이 전부 비어 있습니다.")
     work = work.sort_values("Marcap", ascending=False, na_position="last")
     work = work.drop_duplicates(subset=["_nm"], keep="first")
     work = work.head(n).reset_index(drop=True)

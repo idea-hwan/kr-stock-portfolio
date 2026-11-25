@@ -22,6 +22,7 @@ caffeinate -i .venv/bin/python automation/kr_stock_scheduler.py
 | 데일리 가격 | 매일 16:00 | `daily_update.sh` | 가격 → 팩터 패널 → PIT 버킷 → 대시보드 재생성 → 변경 있으면 자동 commit+push (`docs/index.html`, GitHub Pages 재배포) |
 | 분기 재무(조건부) | 매일 09:00 체크 | `quarterly_financial_update.sh` | 마감일(5/15·8/15·11/15·3/31) **+1일 또는 +8일**에만 실제 실행, 그 외엔 즉시 스킵 |
 | 잠정실적 | 매주 토요일 12:00 | `preliminary_earnings_update.sh` | 시각은 중요하지 않음(정식 공시 전 조기 반영이라 여유 있게) |
+| 주간 신호 리포트 | 매주 일요일 18:00 | `weekly_signal_report.sh` | 토요일 잠정실적 이후, 월요일 장 전. 가격은 직전 거래일 종가. 검토 없이 `docs/signal_reports/<날짜>.md`와 `docs/index.html`을 commit+push |
 
 시각을 바꾸려면 `automation/kr_stock_scheduler.py` 상단의
 `DAILY_HOUR`/`QUARTERLY_HOUR`/`PRELIMINARY_WEEKDAY`·`PRELIMINARY_HOUR` 등 상수를
@@ -35,6 +36,7 @@ caffeinate -i .venv/bin/python automation/kr_stock_scheduler.py
 
 - 데일리: 그날 16:00 이후 아직 안 돌았으면 실행 (하루 통째로 놓치면 다음 날 실행 — 가격은 증분 수집이라 문제없음)
 - 잠정실적: 그 주 토요일 12:00 이후 아직 안 돌았으면 실행
+- 주간 리포트: 그 주 일요일 18:00 이후 아직 안 돌았으면 실행. 월요일까지는 따라잡고, 화요일부터는 그 주를 건너뛴다. 이 잡을 처음 넣을 때 이미 지난 일요일 분은 소급하지 않는다
 - 분기 재무: 트리거 날짜(마감+1/+8일)를 놓쳤어도 최근 30일 안이면 해당 분기를 연·분기 인자로 지정해 실행
 
 그래서 노트북 덮개를 닫아도 열고 나면 밀린 작업이 돈다. 단 스케줄러 프로세스 자체가

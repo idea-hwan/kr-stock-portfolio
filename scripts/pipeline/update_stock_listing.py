@@ -84,6 +84,18 @@ def update_stock_listing() -> None:
     latest_raw = fdr.StockListing("KRX")
     latest = _normalize_listing(latest_raw)
 
+    # 2026-11-16·11-23: FinanceDataReader 캐시(2026-11-21)가 시총·종가를 비운 채로
+    # 내려왔고, 그 파일을 그대로 저장한 뒤 시총 정렬이 코드 순으로 무너져
+    # 상위 200에서 삼성전자가 빠졌다. 시총이 하나도 없으면 기존 파일을 유지한다.
+    marcap_ok = (
+        "Marcap" in latest.columns
+        and pd.to_numeric(latest["Marcap"], errors="coerce").notna().sum() > 0
+    )
+    if not marcap_ok:
+        raise RuntimeError(
+            "KRX 리스트에 시가총액이 없습니다. stock_listing.csv 는 덮어쓰지 않습니다."
+        )
+
     old_df = pd.read_csv(TARGET_PATH) if TARGET_PATH.exists() else pd.DataFrame()
     old_count = len(old_df)
     new_count = len(latest)

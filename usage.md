@@ -70,6 +70,18 @@
 
 ---
 
+## `automation/` — 스케줄러가 부르는 잡
+
+사람이 시각을 맞춰 직접 실행하지 않는다. `automation/kr_stock_scheduler.py`가 호출한다.
+
+| 스크립트 | 하는 일 |
+|----------|---------|
+| `weekly_signal_report.sh` | 매주 일요일 18:00. 잠정실적 로그 확인 후 주간 신호 리포트를 쓰고 대시보드와 함께 push |
+
+절차: `automation/prompts/weekly_signal_report_prompt.md`. 나머지 잡은 [automation_usage.md](automation_usage.md).
+
+---
+
 ## 라이브러리만 (직접 실행 안 함)
 
 `scripts/stock_db.py`, `scripts/config.py`, `scripts/quarter_terms.py`, `scripts/analysis/series_per.py` 등은 다른 스크립트에서 import 하는 모듈이다.
